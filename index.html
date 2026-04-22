@@ -34,15 +34,8 @@
         <div id="stats">Loading...</div>
     </div>
 
-    <!-- Results -->
-    <div class="flex-1 p-4 overflow-auto" id="results-container">
-        <div class="bg-zinc-900 rounded-xl border border-zinc-800 overflow-auto max-h-full">
-            <table id="data-table" class="results-table w-full text-sm"></table>
-        </div>
-    </div>
-
-    <!-- Controls -->
-    <div class="border-t border-zinc-800 bg-zinc-900 p-4 space-y-4">
+    <!-- Controls (now at the top) -->
+    <div class="border-b border-zinc-800 bg-zinc-900 p-4 space-y-4">
         <div class="grid grid-cols-2 gap-3">
             <div>
                 <label class="flex items-center gap-1 text-xs text-zinc-400 mb-1"><span class="text-[#81FF3D]">📂</span> Category:</label>
@@ -57,15 +50,29 @@
         <div class="flex gap-2">
             <input id="search-input" type="text" placeholder="Search inventory..." 
                    class="flex-1 bg-zinc-800 border border-zinc-700 rounded-lg px-4 py-3 focus:border-[#81FF3D] focus:outline-none">
-            <button onclick="performSearch()" class="bg-[#81FF3D] hover:bg-[#9FFF5E] text-black px-6 rounded-lg font-semibold">🔎 Search</button>
+            <button onclick="performSearch()" 
+                    class="bg-[#81FF3D] hover:bg-[#9FFF5E] text-black px-6 rounded-lg font-semibold flex items-center gap-2">
+                🔎 Search
+            </button>
         </div>
 
         <div class="flex gap-3">
-            <button onclick="resetAll()" class="flex-1 bg-red-600 hover:bg-red-500 py-3 rounded-xl font-semibold flex items-center justify-center gap-2">🔄 Reset Search</button>
-            <button onclick="exportToHTML()" class="flex-1 bg-blue-600 hover:bg-blue-500 py-3 rounded-xl font-semibold flex items-center justify-center gap-2">📤 Export Results to HTML</button>
+            <button onclick="resetAll()" 
+                    class="flex-1 bg-red-600 hover:bg-red-500 py-3 rounded-xl font-semibold flex items-center justify-center gap-2 text-sm">
+                🔄 Reset Search
+            </button>
+            <button onclick="exportToHTML()" 
+                    class="flex-1 bg-blue-600 hover:bg-blue-500 py-3 rounded-xl font-semibold flex items-center justify-center gap-2 text-sm">
+                📤 Export Results to HTML
+            </button>
         </div>
+    </div>
 
-        <p class="text-center text-xs text-zinc-500">Tip: Press Enter → Search<br>Press Enter again within 0.8s → Export to HTML</p>
+    <!-- Results -->
+    <div class="flex-1 p-4 overflow-auto" id="results-container">
+        <div class="bg-zinc-900 rounded-xl border border-zinc-800 overflow-auto max-h-full">
+            <table id="data-table" class="results-table w-full text-sm"></table>
+        </div>
     </div>
 
     <script>
@@ -138,34 +145,29 @@
                 return;
             }
 
-            // Header
             const thead = document.createElement('thead');
             thead.className = 'bg-zinc-800 sticky top-0';
             const headerRow = document.createElement('tr');
             
-            // Thumbnail column
             const thImg = document.createElement('th');
             thImg.className = 'text-left text-xs font-medium text-zinc-400 uppercase tracking-wider w-20';
-            thImg.textContent = 'Image';
+            thImg.textContent = 'IMAGE';
             headerRow.appendChild(thImg);
 
-            // Other columns (you can customize which ones show)
             const columnsToShow = ["Title", "Item_Type", "Color", "Material", "Wanted", "Owned", "Notes"];
             columnsToShow.forEach(key => {
                 const th = document.createElement('th');
                 th.className = 'text-left text-xs font-medium text-zinc-400 uppercase tracking-wider';
-                th.textContent = key;
+                th.textContent = key.toUpperCase();
                 headerRow.appendChild(th);
             });
             thead.appendChild(headerRow);
             table.appendChild(thead);
 
-            // Body
             const tbody = document.createElement('tbody');
             data.forEach(row => {
                 const tr = document.createElement('tr');
 
-                // Thumbnail
                 const tdImg = document.createElement('td');
                 if (row.Image_URL) {
                     tdImg.innerHTML = `<img src="${row.Image_URL}" class="thumb-img" alt="thumbnail">`;
@@ -174,7 +176,6 @@
                 }
                 tr.appendChild(tdImg);
 
-                // Other columns
                 columnsToShow.forEach(key => {
                     const td = document.createElement('td');
                     td.textContent = row[key] || '';
