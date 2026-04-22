@@ -62,10 +62,10 @@
     </div>
 
     <script>
-        const CSV_URL = "https://raw.githubusercontent.com/mirdle/mrsvlts/main/maindb.csv"; // ← CHANGE THIS
-        const CATEGORY_COLUMN = "Category";           // ← CHANGE to exact column name
-        const QUICK_FILTER_COLUMN = "Status";         // ← CHANGE to exact column name (or whatever your quick filter is)
-        const SEARCH_COLUMNS = ["Title", "Description", "PartNumber", "Notes"]; // add any columns you want searchable
+        const CSV_URL = "https://raw.githubusercontent.com/mirdle/mrsvlts/main/maindb.csv";
+        const CATEGORY_COLUMN = "Item_Type";           // ← This is your Category (Short Sleeve, Polos, etc.)
+        const QUICK_FILTER_COLUMN = "Owned";          // ← Best quick filter (owned-yes / owned-no)
+        const SEARCH_COLUMNS = ["Title", "Notes", "Item_Type", "Color"]; // searchable columns
 
         let allData = [];
         let filteredData = [];
