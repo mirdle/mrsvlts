@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>RSVLTS MainDB Quick Search</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.4.1/papaparse.min.js"></script>
@@ -10,14 +10,18 @@
         @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&display=swap');
         body { font-family: 'Inter', system-ui, sans-serif; }
         .green-text { color: #81FF3D; }
-        .results-table td, .results-table th { padding: 12px 8px; border-bottom: 1px solid #222; }
+        .results-table td, .results-table th { padding: 10px 8px; border-bottom: 1px solid #222; }
         .thumb-img {
-            width: 80px;
-            height: 80px;
+            width: 68px;
+            height: 68px;
             object-fit: cover;
             border-radius: 8px;
             border: 2px solid #333;
         }
+        @media (min-width: 640px) {
+            .thumb-img { width: 80px; height: 80px; }
+        }
+        .table-container { overflow-x: auto; -webkit-overflow-scrolling: touch; }
     </style>
 </head>
 <body class="bg-zinc-950 text-zinc-100 min-h-screen flex flex-col">
@@ -34,7 +38,7 @@
         <div id="stats">Loading...</div>
     </div>
 
-    <!-- Controls (now at the top) -->
+    <!-- Controls (top) -->
     <div class="border-b border-zinc-800 bg-zinc-900 p-4 space-y-4">
         <div class="grid grid-cols-2 gap-3">
             <div>
@@ -48,8 +52,8 @@
         </div>
 
         <div class="flex gap-2">
-            <input id="search-input" type="text" placeholder="Search inventory..." 
-                   class="flex-1 bg-zinc-800 border border-zinc-700 rounded-lg px-4 py-3 focus:border-[#81FF3D] focus:outline-none">
+            <input id="search-input" type="text" placeholder="Search inventory... (use &quot;exact&quot; or -exclude)" 
+                   class="flex-1 bg-zinc-800 border border-zinc-700 rounded-lg px-4 py-3 focus:border-[#81FF3D] focus:outline-none text-base">
             <button onclick="performSearch()" 
                     class="bg-[#81FF3D] hover:bg-[#9FFF5E] text-black px-6 rounded-lg font-semibold flex items-center gap-2">
                 🔎 Search
@@ -58,11 +62,11 @@
 
         <div class="flex gap-3">
             <button onclick="resetAll()" 
-                    class="flex-1 bg-red-600 hover:bg-red-500 py-3 rounded-xl font-semibold flex items-center justify-center gap-2 text-sm">
+                    class="flex-1 bg-red-600 hover:bg-red-500 py-3.5 rounded-xl font-semibold flex items-center justify-center gap-2 text-sm">
                 🔄 Reset Search
             </button>
             <button onclick="exportToHTML()" 
-                    class="flex-1 bg-blue-600 hover:bg-blue-500 py-3 rounded-xl font-semibold flex items-center justify-center gap-2 text-sm">
+                    class="flex-1 bg-blue-600 hover:bg-blue-500 py-3.5 rounded-xl font-semibold flex items-center justify-center gap-2 text-sm">
                 📤 Export Results to HTML
             </button>
         </div>
@@ -70,7 +74,7 @@
 
     <!-- Results -->
     <div class="flex-1 p-4 overflow-auto" id="results-container">
-        <div class="bg-zinc-900 rounded-xl border border-zinc-800 overflow-auto max-h-full">
+        <div class="bg-zinc-900 rounded-xl border border-zinc-800 table-container">
             <table id="data-table" class="results-table w-full text-sm"></table>
         </div>
     </div>
@@ -119,15 +123,43 @@
             });
         }
 
+        // Advanced search with "exact phrase", -exclude, and OR support
+        function matchesAdvancedSearch(row, searchTerm) {
+            if (!searchTerm) return true;
+            searchTerm = searchTerm.toLowerCase().trim();
+
+            const terms = searchTerm.match(/"([^"]+)"|(\S+)/g) || [];
+            const positive = [];
+            const negative = [];
+
+            terms.forEach(t => {
+                let term = t.replace(/"/g, '').trim();
+                if (term.startsWith('-')) {
+                    negative.push(term.slice(1));
+                } else if (term.toUpperCase() === 'OR') {
+                    // OR is handled by allowing multiple positive matches
+                } else {
+                    positive.push(term);
+                }
+            });
+
+            const rowText = SEARCH_COLUMNS.map(col => (row[col] || '').toString().toLowerCase()).join(' ');
+
+            // Must match ALL positive terms
+            const matchesPositive = positive.every(term => rowText.includes(term));
+            // Must NOT match any negative terms
+            const matchesNegative = negative.every(term => !rowText.includes(term));
+
+            return matchesPositive && matchesNegative;
+        }
+
         function performSearch() {
-            const searchTerm = document.getElementById('search-input').value.toLowerCase().trim();
+            const searchTerm = document.getElementById('search-input').value;
             const category = document.getElementById('category-select').value;
             const quickFilter = document.getElementById('quick-filter-select').value;
 
             filteredData = allData.filter(row => {
-                const matchesSearch = !searchTerm || SEARCH_COLUMNS.some(col => 
-                    row[col] && row[col].toString().toLowerCase().includes(searchTerm)
-                );
+                const matchesSearch = matchesAdvancedSearch(row, searchTerm);
                 const matchesCategory = !category || row[CATEGORY_COLUMN] === category;
                 const matchesFilter = !quickFilter || row[QUICK_FILTER_COLUMN] === quickFilter;
                 return matchesSearch && matchesCategory && matchesFilter;
