@@ -10,7 +10,14 @@
         @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&display=swap');
         body { font-family: 'Inter', system-ui, sans-serif; }
         .green-text { color: #81FF3D; }
-        .results-table td, .results-table th { padding: 12px 16px; border-bottom: 1px solid #222; }
+        .results-table td, .results-table th { padding: 12px 8px; border-bottom: 1px solid #222; }
+        .thumb-img {
+            width: 80px;
+            height: 80px;
+            object-fit: cover;
+            border-radius: 8px;
+            border: 2px solid #333;
+        }
     </style>
 </head>
 <body class="bg-zinc-950 text-zinc-100 min-h-screen flex flex-col">
@@ -63,9 +70,9 @@
 
     <script>
         const CSV_URL = "https://raw.githubusercontent.com/mirdle/mrsvlts/main/maindb.csv";
-        const CATEGORY_COLUMN = "Item_Type";           // ← This is your Category (Short Sleeve, Polos, etc.)
-        const QUICK_FILTER_COLUMN = "Owned";          // ← Best quick filter (owned-yes / owned-no)
-        const SEARCH_COLUMNS = ["Title", "Notes", "Item_Type", "Color"]; // searchable columns
+        const CATEGORY_COLUMN = "Item_Type";
+        const QUICK_FILTER_COLUMN = "Owned";
+        const SEARCH_COLUMNS = ["Title", "Notes", "Item_Type", "Color", "Material"];
 
         let allData = [];
         let filteredData = [];
@@ -88,7 +95,6 @@
         }
 
         function populateDropdowns() {
-            // Category
             const catSelect = document.getElementById('category-select');
             const categories = [...new Set(allData.map(r => r[CATEGORY_COLUMN]).filter(Boolean))].sort();
             categories.forEach(cat => {
@@ -97,7 +103,6 @@
                 catSelect.appendChild(opt);
             });
 
-            // Quick Filter
             const filterSelect = document.getElementById('quick-filter-select');
             const filterValues = [...new Set(allData.map(r => r[QUICK_FILTER_COLUMN]).filter(Boolean))].sort();
             filterValues.forEach(val => {
@@ -137,7 +142,16 @@
             const thead = document.createElement('thead');
             thead.className = 'bg-zinc-800 sticky top-0';
             const headerRow = document.createElement('tr');
-            Object.keys(data[0]).slice(0, 8).forEach(key => {  // adjust number of columns shown if needed
+            
+            // Thumbnail column
+            const thImg = document.createElement('th');
+            thImg.className = 'text-left text-xs font-medium text-zinc-400 uppercase tracking-wider w-20';
+            thImg.textContent = 'Image';
+            headerRow.appendChild(thImg);
+
+            // Other columns (you can customize which ones show)
+            const columnsToShow = ["Title", "Item_Type", "Color", "Material", "Wanted", "Owned", "Notes"];
+            columnsToShow.forEach(key => {
                 const th = document.createElement('th');
                 th.className = 'text-left text-xs font-medium text-zinc-400 uppercase tracking-wider';
                 th.textContent = key;
@@ -150,7 +164,18 @@
             const tbody = document.createElement('tbody');
             data.forEach(row => {
                 const tr = document.createElement('tr');
-                Object.keys(row).slice(0, 8).forEach(key => {
+
+                // Thumbnail
+                const tdImg = document.createElement('td');
+                if (row.Image_URL) {
+                    tdImg.innerHTML = `<img src="${row.Image_URL}" class="thumb-img" alt="thumbnail">`;
+                } else {
+                    tdImg.textContent = '—';
+                }
+                tr.appendChild(tdImg);
+
+                // Other columns
+                columnsToShow.forEach(key => {
                     const td = document.createElement('td');
                     td.textContent = row[key] || '';
                     tr.appendChild(td);
@@ -187,7 +212,6 @@
             a.click();
         }
 
-        // Keyboard support (double-enter)
         document.addEventListener('keydown', e => {
             if (e.key === 'Enter') {
                 const now = Date.now();
@@ -200,7 +224,6 @@
             }
         });
 
-        // Load the app
         window.onload = loadCSV;
     </script>
 </body>
