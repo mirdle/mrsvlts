@@ -30,13 +30,11 @@
     <!-- Header -->
     <div class="bg-black border-b border-zinc-800 px-4 py-3 flex items-center justify-between">
         <h1 class="text-2xl font-semibold green-text tracking-tight">RSVLTS MainDB Quick Search</h1>
-        <div class="text-xs text-zinc-400 px-3 py-1 bg-zinc-900 rounded">DOUBLE-ENTER EXPORT ENABLED</div>
     </div>
 
     <!-- Status -->
     <div id="status" class="px-4 py-2 text-sm font-medium bg-zinc-900 border-b border-zinc-800 flex flex-col gap-1 text-emerald-400">
         <div>✅ MainDB loaded successfully!</div>
-        <div id="stats">Loading...</div>
     </div>
 
     <!-- Controls -->
@@ -61,16 +59,11 @@
             </button>
         </div>
 
-        <div class="flex gap-3">
-            <button onclick="resetAll()" 
-                    class="flex-1 bg-red-600 hover:bg-red-500 py-3.5 rounded-xl font-semibold flex items-center justify-center gap-2 text-sm">
-                🔄 Reset Search
-            </button>
-            <button onclick="exportToHTML()" 
-                    class="flex-1 bg-blue-600 hover:bg-blue-500 py-3.5 rounded-xl font-semibold flex items-center justify-center gap-2 text-sm">
-                📤 Export Results to HTML
-            </button>
-        </div>
+        <!-- Reset Search - directly underneath -->
+        <button onclick="resetAll()" 
+                class="w-full bg-red-600 hover:bg-red-500 py-3.5 rounded-xl font-semibold flex items-center justify-center gap-2 text-sm">
+            🔄 Reset Search
+        </button>
     </div>
 
     <!-- Cards -->
@@ -81,7 +74,7 @@
     <script>
         const CSV_URL = "https://raw.githubusercontent.com/mirdle/mrsvlts/main/maindb.csv";
         const CATEGORY_COLUMN = "Item_Type";
-        const QUICK_FILTER_COLUMN = "Owned";           // ← change to "Wanted" if you prefer that instead
+        const QUICK_FILTER_COLUMN = "Owned";
         const SEARCH_COLUMNS = ["Title", "Notes", "Item_Type", "Color", "Material"];
 
         let allData = [];
@@ -99,15 +92,14 @@
                     document.getElementById('stats').innerHTML = `${allData.length} items • ${new Set(allData.map(r => r[CATEGORY_COLUMN])).size} categories`;
                     populateDropdowns();
                     renderEmptyState();
-                    statusEl.innerHTML = `<div>✅ MainDB loaded successfully!</div><div class="text-emerald-400">Advanced search + DOUBLE-ENTER EXPORT enabled!</div>`;
+                    statusEl.innerHTML = `<div>✅ MainDB loaded successfully!</div>`;
                 }
             });
         }
 
         function populateDropdowns() {
-            // Category dropdown
             const catSelect = document.getElementById('category-select');
-            catSelect.innerHTML = '';                     // clear first
+            catSelect.innerHTML = '';
             const allCat = document.createElement('option');
             allCat.value = ''; allCat.textContent = 'All Categories';
             catSelect.appendChild(allCat);
@@ -126,9 +118,8 @@
             });
             catSelect.value = '';
 
-            // Quick Filter dropdown
             const filterSelect = document.getElementById('quick-filter-select');
-            filterSelect.innerHTML = '';                  // ← this was the fix
+            filterSelect.innerHTML = '';
             const allFilter = document.createElement('option');
             allFilter.value = ''; allFilter.textContent = 'All';
             filterSelect.appendChild(allFilter);
@@ -142,7 +133,6 @@
             filterSelect.value = '';
         }
 
-        // (rest of the functions remain exactly the same as before)
         function renderEmptyState() {
             const container = document.getElementById('cards-container');
             container.innerHTML = `
@@ -233,34 +223,11 @@
             renderEmptyState();
         }
 
-        function exportToHTML() {
-            if (filteredData.length === 0) {
-                alert("No results to export yet!");
-                return;
-            }
-            let html = `<h1>RSVLTS MainDB Export - ${new Date().toLocaleString()}</h1><table border="1" style="border-collapse: collapse; width:100%;"><thead><tr>`;
-            Object.keys(filteredData[0] || {}).forEach(key => html += `<th style="padding:8px;">${key}</th>`);
-            html += `</tr></thead><tbody>`;
-            filteredData.forEach(row => {
-                html += `<tr>`;
-                Object.values(row).forEach(val => html += `<td style="padding:8px;">${val || ''}</td>`);
-                html += `</tr>`;
-            });
-            html += `</tbody></table>`;
-
-            const blob = new Blob([html], { type: 'text/html' });
-            const url = URL.createObjectURL(blob);
-            const a = document.createElement('a');
-            a.href = url;
-            a.download = `RSVLTS_MainDB_Export_${new Date().toISOString().slice(0,10)}.html`;
-            a.click();
-        }
-
         document.addEventListener('keydown', e => {
             if (e.key === 'Enter') {
                 const now = Date.now();
                 if (now - lastEnterTime < 800) {
-                    exportToHTML();
+                    // export removed, so just search
                 } else {
                     performSearch();
                 }
