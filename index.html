@@ -59,9 +59,9 @@
             </button>
         </div>
 
-        <!-- Reset Search - directly underneath -->
+        <!-- Refined Reset Search button -->
         <button onclick="resetAll()" 
-                class="w-full bg-red-600 hover:bg-red-500 py-3.5 rounded-xl font-semibold flex items-center justify-center gap-2 text-sm">
+                class="w-full bg-red-600 hover:bg-red-500 active:bg-red-700 py-3 rounded-2xl font-semibold flex items-center justify-center gap-2 text-sm transition-all">
             🔄 Reset Search
         </button>
     </div>
@@ -98,6 +98,7 @@
         }
 
         function populateDropdowns() {
+            // Category
             const catSelect = document.getElementById('category-select');
             catSelect.innerHTML = '';
             const allCat = document.createElement('option');
@@ -118,6 +119,7 @@
             });
             catSelect.value = '';
 
+            // Quick Filter
             const filterSelect = document.getElementById('quick-filter-select');
             filterSelect.innerHTML = '';
             const allFilter = document.createElement('option');
@@ -225,13 +227,8 @@
 
         document.addEventListener('keydown', e => {
             if (e.key === 'Enter') {
-                const now = Date.now();
-                if (now - lastEnterTime < 800) {
-                    // export removed, so just search
-                } else {
-                    performSearch();
-                }
-                lastEnterTime = now;
+                performSearch();
+                lastEnterTime = Date.now();
             }
         });
 
