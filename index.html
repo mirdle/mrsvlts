@@ -27,16 +27,16 @@
         <h1 class="text-2xl font-semibold green-text tracking-tight">RSVLTS MainDB Quick Search</h1>
     </div>
 
-    <!-- Status + Reset button on same line -->
+    <!-- Status + small white Reset button -->
     <div id="status" class="px-4 py-3 bg-zinc-900 border-b border-zinc-800 flex items-center justify-between text-sm">
         <div class="flex items-center gap-3">
             <div class="text-emerald-400 font-medium">✅ MainDB loaded successfully!</div>
             <button onclick="resetAll()" 
-                    class="text-white bg-zinc-700 hover:bg-zinc-600 active:bg-zinc-800 px-4 py-1 rounded-xl text-xs font-medium flex items-center gap-1 transition-all">
+                    class="text-white bg-zinc-700 hover:bg-zinc-600 px-4 py-1 rounded-xl text-xs font-medium flex items-center gap-1 transition-all">
                 🔄 Reset
             </button>
         </div>
-        <div id="debug" class="text-[10px] text-zinc-500"></div>
+        <div id="debug" class="text-[10px] text-zinc-400 font-mono"></div>
     </div>
 
     <!-- Controls -->
@@ -83,10 +83,9 @@
                 skipEmptyLines: true,
                 complete: (results) => {
                     allData = results.data.filter(row => Object.values(row).some(v => v && v.trim() !== ''));
-                    document.getElementById('stats').innerHTML = `${allData.length} items • ${new Set(allData.map(r => r[CATEGORY_COLUMN])).size} categories`;
                     
-                    // Debug info
-                    document.getElementById('debug').textContent = `Loaded ${allData.length} items`;
+                    const debugEl = document.getElementById('debug');
+                    debugEl.innerHTML = `Loaded ${allData.length} rows<br>Categories: ${new Set(allData.map(r => r[CATEGORY_COLUMN])).size}<br>Quick Filters: ${new Set(allData.map(r => r[QUICK_FILTER_COLUMN])).size}`;
 
                     populateDropdowns();
                     renderEmptyState();
@@ -142,8 +141,7 @@
                 </div>`;
         }
 
-        // ... (rest of the functions unchanged - matchesAdvancedSearch, sortByReleaseDate, performSearch, renderCards, resetAll)
-
+        // ... (the rest of the functions are unchanged from your last working version)
         function matchesAdvancedSearch(row, searchTerm) {
             if (!searchTerm) return true;
             searchTerm = searchTerm.toLowerCase().trim();
