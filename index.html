@@ -106,26 +106,32 @@
 
         function populateDropdowns() {
             const catSelect = document.getElementById('category-select');
+            
+            // All Categories (default)
             const allCat = document.createElement('option');
-            allCat.value = ''; allCat.textContent = 'All Categories';
+            allCat.value = ''; 
+            allCat.textContent = 'All Categories';
             catSelect.appendChild(allCat);
-            [...new Set(allData.map(r => r[CATEGORY_COLUMN]).filter(Boolean))].sort().forEach(cat => {
+
+            // Force "Short Sleeve" right after All Categories
+            const shortSleeve = document.createElement('option');
+            shortSleeve.value = 'Short Sleeve';
+            shortSleeve.textContent = 'Short Sleeve';
+            catSelect.appendChild(shortSleeve);
+
+            // All other categories in alphabetical order (excluding Short Sleeve)
+            const categories = [...new Set(allData.map(r => r[CATEGORY_COLUMN]).filter(Boolean))]
+                .filter(cat => cat !== 'Short Sleeve')
+                .sort();
+
+            categories.forEach(cat => {
                 const opt = document.createElement('option');
-                opt.value = cat; opt.textContent = cat;
+                opt.value = cat; 
+                opt.textContent = cat;
                 catSelect.appendChild(opt);
             });
-            catSelect.value = '';
 
-            const filterSelect = document.getElementById('quick-filter-select');
-            const allFilter = document.createElement('option');
-            allFilter.value = ''; allFilter.textContent = 'All';
-            filterSelect.appendChild(allFilter);
-            [...new Set(allData.map(r => r[QUICK_FILTER_COLUMN]).filter(Boolean))].sort().forEach(val => {
-                const opt = document.createElement('option');
-                opt.value = val; opt.textContent = val;
-                filterSelect.appendChild(opt);
-            });
-            filterSelect.value = '';
+            catSelect.value = ''; // default to All Categories
         }
 
         function renderEmptyState() {
@@ -154,6 +160,14 @@
                    negative.every(term => !rowText.includes(term));
         }
 
+        function sortByReleaseDate(data) {
+            return [...data].sort((a, b) => {
+                const dateA = new Date(a.Release_Date || '1900-01-01');
+                const dateB = new Date(b.Release_Date || '1900-01-01');
+                return dateB - dateA;
+            });
+        }
+
         function performSearch() {
             const searchTerm = document.getElementById('search-input').value;
             const category = document.getElementById('category-select').value;
@@ -166,6 +180,7 @@
                 return matchesSearch && matchesCategory && matchesFilter;
             });
 
+            filteredData = sortByReleaseDate(filteredData);
             renderCards(filteredData);
         }
 
@@ -191,8 +206,8 @@
                             </h3>
                             <div class="text-xs text-zinc-400 space-y-1">
                                 <div><span class="text-zinc-500">Type:</span> ${row.Item_Type || '-'}</div>
-                                <div><span class="text-zinc-500">Bin#:</span> ${row['Bin#'] || row.Bin || '-'}</div>
-                                <div><span class="text-zinc-500">Release:</span> ${row.RELEASE_DATE || row['Release_Date'] || '-'}</div>
+                                <div><span class="text-zinc-500">Bin#:</span> ${row['Bin#'] || '-'}</div>
+                                <div><span class="text-zinc-500">Release:</span> ${row.Release_Date || '-'}</div>
                             </div>
                             ${row.Notes ? `<p class="text-[10px] text-zinc-500 mt-3 line-clamp-3">${row.Notes}</p>` : ''}
                         </div>
