@@ -10,13 +10,8 @@
         @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&display=swap');
         body { font-family: 'Inter', system-ui, sans-serif; }
         .green-text { color: #81FF3D; }
-        .card {
-            transition: all 0.2s ease;
-        }
-        .card:hover {
-            transform: scale(1.03);
-            box-shadow: 0 10px 15px -3px rgb(129 255 61);
-        }
+        .card { transition: all 0.2s ease; }
+        .card:hover { transform: scale(1.03); box-shadow: 0 10px 15px -3px rgb(129 255 61); }
         .thumb-img {
             width: 100%;
             height: 180px;
@@ -59,7 +54,6 @@
             </button>
         </div>
 
-        <!-- Refined Reset Search button -->
         <button onclick="resetAll()" 
                 class="w-full bg-red-600 hover:bg-red-500 active:bg-red-700 py-3 rounded-2xl font-semibold flex items-center justify-center gap-2 text-sm transition-all">
             🔄 Reset Search
@@ -79,26 +73,23 @@
 
         let allData = [];
         let filteredData = [];
-        let lastEnterTime = 0;
 
         async function loadCSV() {
-            const statusEl = document.getElementById('status');
             Papa.parse(CSV_URL, {
                 download: true,
                 header: true,
                 skipEmptyLines: true,
                 complete: (results) => {
-                    allData = results.data.filter(row => Object.values(row).some(v => v));
+                    allData = results.data.filter(row => Object.values(row).some(v => v && v.trim() !== ''));
                     document.getElementById('stats').innerHTML = `${allData.length} items • ${new Set(allData.map(r => r[CATEGORY_COLUMN])).size} categories`;
                     populateDropdowns();
                     renderEmptyState();
-                    statusEl.innerHTML = `<div>✅ MainDB loaded successfully!</div>`;
                 }
             });
         }
 
         function populateDropdowns() {
-            // Category
+            // Category dropdown
             const catSelect = document.getElementById('category-select');
             catSelect.innerHTML = '';
             const allCat = document.createElement('option');
@@ -119,7 +110,7 @@
             });
             catSelect.value = '';
 
-            // Quick Filter
+            // Quick Filter dropdown
             const filterSelect = document.getElementById('quick-filter-select');
             filterSelect.innerHTML = '';
             const allFilter = document.createElement('option');
@@ -226,10 +217,7 @@
         }
 
         document.addEventListener('keydown', e => {
-            if (e.key === 'Enter') {
-                performSearch();
-                lastEnterTime = Date.now();
-            }
+            if (e.key === 'Enter') performSearch();
         });
 
         window.onload = loadCSV;
