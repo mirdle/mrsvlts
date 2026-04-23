@@ -81,7 +81,7 @@
     <script>
         const CSV_URL = "https://raw.githubusercontent.com/mirdle/mrsvlts/main/maindb.csv";
         const CATEGORY_COLUMN = "Item_Type";
-        const QUICK_FILTER_COLUMN = "Owned";
+        const QUICK_FILTER_COLUMN = "Owned";           // ← change to "Wanted" if you prefer that instead
         const SEARCH_COLUMNS = ["Title", "Notes", "Item_Type", "Color", "Material"];
 
         let allData = [];
@@ -105,35 +105,44 @@
         }
 
         function populateDropdowns() {
+            // Category dropdown
             const catSelect = document.getElementById('category-select');
-            
-            // All Categories (default)
+            catSelect.innerHTML = '';                     // clear first
             const allCat = document.createElement('option');
-            allCat.value = ''; 
-            allCat.textContent = 'All Categories';
+            allCat.value = ''; allCat.textContent = 'All Categories';
             catSelect.appendChild(allCat);
 
-            // Force "Short Sleeve" right after All Categories
             const shortSleeve = document.createElement('option');
-            shortSleeve.value = 'Short Sleeve';
-            shortSleeve.textContent = 'Short Sleeve';
+            shortSleeve.value = 'Short Sleeve'; shortSleeve.textContent = 'Short Sleeve';
             catSelect.appendChild(shortSleeve);
 
-            // All other categories in alphabetical order (excluding Short Sleeve)
-            const categories = [...new Set(allData.map(r => r[CATEGORY_COLUMN]).filter(Boolean))]
-                .filter(cat => cat !== 'Short Sleeve')
+            const otherCats = [...new Set(allData.map(r => r[CATEGORY_COLUMN]).filter(Boolean))]
+                .filter(c => c !== 'Short Sleeve')
                 .sort();
-
-            categories.forEach(cat => {
+            otherCats.forEach(cat => {
                 const opt = document.createElement('option');
-                opt.value = cat; 
-                opt.textContent = cat;
+                opt.value = cat; opt.textContent = cat;
                 catSelect.appendChild(opt);
             });
+            catSelect.value = '';
 
-            catSelect.value = ''; // default to All Categories
+            // Quick Filter dropdown
+            const filterSelect = document.getElementById('quick-filter-select');
+            filterSelect.innerHTML = '';                  // ← this was the fix
+            const allFilter = document.createElement('option');
+            allFilter.value = ''; allFilter.textContent = 'All';
+            filterSelect.appendChild(allFilter);
+
+            const filterValues = [...new Set(allData.map(r => r[QUICK_FILTER_COLUMN]).filter(Boolean))].sort();
+            filterValues.forEach(val => {
+                const opt = document.createElement('option');
+                opt.value = val; opt.textContent = val;
+                filterSelect.appendChild(opt);
+            });
+            filterSelect.value = '';
         }
 
+        // (rest of the functions remain exactly the same as before)
         function renderEmptyState() {
             const container = document.getElementById('cards-container');
             container.innerHTML = `
