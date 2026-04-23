@@ -89,7 +89,6 @@
         }
 
         function populateDropdowns() {
-            // Category dropdown
             const catSelect = document.getElementById('category-select');
             catSelect.innerHTML = '';
             const allCat = document.createElement('option');
@@ -110,7 +109,6 @@
             });
             catSelect.value = '';
 
-            // Quick Filter dropdown
             const filterSelect = document.getElementById('quick-filter-select');
             filterSelect.innerHTML = '';
             const allFilter = document.createElement('option');
@@ -191,7 +189,7 @@
 
                 const cardHTML = `
                     <a href="${row.URL || '#'}" target="_blank" rel="noopener noreferrer" class="card bg-zinc-900 rounded-2xl overflow-hidden border border-zinc-700 hover:border-[#81FF3D]/50 block">
-                        ${row.Image_URL ? `<img src="${row.Image_URL}" class="thumb-img w-full" alt="${row.Title}">` : ''}
+                        ${row.Image_URL ? `<img src="${row.Image_URL}" loading="lazy" class="thumb-img w-full" alt="${row.Title}">` : ''}
                         <div class="p-4">
                             <h3 class="font-semibold text-base leading-tight mb-2 line-clamp-2">
                                 ${wantedIcon}${ownedIcon}${row.Title || 'No title'}
