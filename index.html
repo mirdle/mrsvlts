@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>RSVLTS MainDB Quick Search [WANT ADD]</title>
+    <title>RSVLTS MainDB Quick Search</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.4.1/papaparse.min.js"></script>
     <style>
@@ -23,7 +23,7 @@
 <body class="bg-zinc-950 text-zinc-100 min-h-screen flex flex-col">
     <!-- Header -->
     <div class="bg-black border-b border-zinc-800 px-4 py-3 flex items-center justify-between">
-        <h1 class="text-2xl font-semibold green-text tracking-tight">RSVLTS MainDB Quick Search <span class="text-yellow-400">[WANTED ADDED]</span></h1>
+        <h1 class="text-2xl font-semibold green-text tracking-tight">RSVLTS MainDB Quick Search</h1>
     </div>
     <!-- Status + small white Reset button -->
     <div id="status" class="px-4 py-3 bg-zinc-900 border-b border-zinc-800 flex items-center justify-between text-sm">
@@ -79,7 +79,7 @@
                     allData = results.data.filter(row => Object.values(row).some(v => v && v.trim() !== ''));
                    
                     const debugEl = document.getElementById('debug');
-                    debugEl.innerHTML = `Loaded ${allData.length} rows<br>Categories: ${new Set(allData.map(r => r[CATEGORY_COLUMN])).size}<br>Quick Filters: ${new Set(allData.map(r => r[QUICK_FILTER_COLUMN])).size}<br><span class="text-yellow-400">🔥 WANTED FILTER LOADED 🔥</span>`;
+                    debugEl.innerHTML = `ver 1.2<br>Loaded ${allData.length} rows<br>Categories: ${new Set(allData.map(r => r[CATEGORY_COLUMN])).size}<br>Quick Filters: ${new Set(allData.map(r => r[QUICK_FILTER_COLUMN])).size}`;
                     populateDropdowns();
                     renderEmptyState();
                 }
@@ -87,8 +87,6 @@
         }
 
         function populateDropdowns() {
-            console.log('🚀 populateDropdowns() started');
-
             // Category dropdown
             const catSelect = document.getElementById('category-select');
             catSelect.innerHTML = '';
@@ -115,20 +113,31 @@
             allFilter.value = ''; allFilter.textContent = 'All';
             filterSelect.appendChild(allFilter);
 
+            // Add all Owned values (with icon for owned-yes)
             const filterValues = [...new Set(allData.map(r => r[QUICK_FILTER_COLUMN]).filter(Boolean))].sort();
             filterValues.forEach(val => {
                 const opt = document.createElement('option');
-                opt.value = val; opt.textContent = val;
+                opt.value = val;
+                if (val === 'owned-yes') {
+                    opt.textContent = '✅ owned-yes';
+                } else {
+                    opt.textContent = val;
+                }
                 filterSelect.appendChild(opt);
             });
 
-            // === NEW WANTED OPTION (now very obvious for testing) ===
+            // Wanted filter option
             const wantedOpt = document.createElement('option');
             wantedOpt.value = 'wanted-yes';
-            wantedOpt.textContent = '🔥 WANTED TEST 🔥';
+            wantedOpt.textContent = 'Wanted ⭐';
             filterSelect.appendChild(wantedOpt);
 
-            console.log('✅ Wanted option added! Total options now:', filterSelect.options.length);
+            // New: Last 10 Days filter
+            const recentOpt = document.createElement('option');
+            recentOpt.value = 'last-10-days';
+            recentOpt.textContent = 'Last 10 Days 📅';
+            filterSelect.appendChild(recentOpt);
+
             filterSelect.value = '';
         }
 
@@ -179,6 +188,20 @@
                 if (quickFilter) {
                     if (quickFilter === 'wanted-yes') {
                         matchesFilter = (row.Wanted || '').trim() === 'wanted-yes';
+                    } else if (quickFilter === 'last-10-days') {
+                        // Filter items released in the last 10 days
+                        const tenDaysAgo = new Date();
+                        tenDaysAgo.setDate(tenDaysAgo.getDate() - 10);
+                        tenDaysAgo.setHours(0, 0, 0, 0);
+                        
+                        const releaseStr = row.Release_Date || '';
+                        if (!releaseStr) {
+                            matchesFilter = false;
+                        } else {
+                            const releaseDate = new Date(releaseStr);
+                            releaseDate.setHours(0, 0, 0, 0);
+                            matchesFilter = releaseDate >= tenDaysAgo;
+                        }
                     } else {
                         matchesFilter = row[QUICK_FILTER_COLUMN] === quickFilter;
                     }
