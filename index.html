@@ -61,6 +61,7 @@
     <div class="flex-1 p-4 overflow-auto" id="results-container">
         <div id="cards-container" class="grid grid-cols-1 sm:grid-cols-2 gap-4"></div>
     </div>
+
     <script>
         const CSV_URL = "https://raw.githubusercontent.com/mirdle/mrsvlts/main/maindb.csv";
         const CATEGORY_COLUMN = "Item_Type";
@@ -68,6 +69,7 @@
         const SEARCH_COLUMNS = ["Title", "Notes", "Item_Type", "Color", "Material"];
         let allData = [];
         let filteredData = [];
+
         async function loadCSV() {
             Papa.parse(CSV_URL, {
                 download: true,
@@ -83,8 +85,9 @@
                 }
             });
         }
+
         function populateDropdowns() {
-            // Category
+            // Category dropdown (unchanged)
             const catSelect = document.getElementById('category-select');
             catSelect.innerHTML = '';
             const allCat = document.createElement('option');
@@ -103,27 +106,30 @@
             });
             catSelect.value = '';
 
-            // Quick Filter (Owned values + new "wanted-yes" option)
+            // Quick Filter dropdown
             const filterSelect = document.getElementById('quick-filter-select');
             filterSelect.innerHTML = '';
             const allFilter = document.createElement('option');
             allFilter.value = ''; allFilter.textContent = 'All';
             filterSelect.appendChild(allFilter);
+
+            // Add all Owned values
             const filterValues = [...new Set(allData.map(r => r[QUICK_FILTER_COLUMN]).filter(Boolean))].sort();
             filterValues.forEach(val => {
                 const opt = document.createElement('option');
                 opt.value = val; opt.textContent = val;
                 filterSelect.appendChild(opt);
             });
-            
-            // === NEW: Add "wanted-yes" as another quick filter option ===
+
+            // === NEW: Add "wanted-yes" option ===
             const wantedOpt = document.createElement('option');
             wantedOpt.value = 'wanted-yes';
             wantedOpt.textContent = 'Wanted ⭐';
             filterSelect.appendChild(wantedOpt);
-            
+
             filterSelect.value = '';
         }
+
         function renderEmptyState() {
             const container = document.getElementById('cards-container');
             container.innerHTML = `
@@ -133,6 +139,7 @@
                     <p class="text-sm mt-2">Use the search bar, category, or quick filter above</p>
                 </div>`;
         }
+
         function matchesAdvancedSearch(row, searchTerm) {
             if (!searchTerm) return true;
             searchTerm = searchTerm.toLowerCase().trim();
@@ -148,6 +155,7 @@
             return positive.every(term => rowText.includes(term)) &&
                    negative.every(term => !rowText.includes(term));
         }
+
         function sortByReleaseDate(data) {
             return [...data].sort((a, b) => {
                 const dateA = new Date(a.Release_Date || '1900-01-01');
@@ -155,6 +163,7 @@
                 return dateB - dateA;
             });
         }
+
         function performSearch() {
             const searchTerm = document.getElementById('search-input').value;
             const category = document.getElementById('category-select').value;
@@ -164,7 +173,6 @@
                 const matchesSearch = matchesAdvancedSearch(row, searchTerm);
                 const matchesCategory = !category || row[CATEGORY_COLUMN] === category;
                 
-                // === UPDATED FILTER LOGIC: support both Owned values AND the new wanted-yes option ===
                 let matchesFilter = true;
                 if (quickFilter) {
                     if (quickFilter === 'wanted-yes') {
@@ -173,13 +181,13 @@
                         matchesFilter = row[QUICK_FILTER_COLUMN] === quickFilter;
                     }
                 }
-                
                 return matchesSearch && matchesCategory && matchesFilter;
             });
             
             filteredData = sortByReleaseDate(filteredData);
             renderCards(filteredData);
         }
+
         function renderCards(data) {
             const container = document.getElementById('cards-container');
             container.innerHTML = '';
@@ -208,6 +216,7 @@
                 container.innerHTML += cardHTML;
             });
         }
+
         function resetAll() {
             document.getElementById('search-input').value = '';
             document.getElementById('category-select').value = '';
@@ -215,9 +224,11 @@
             filteredData = [];
             renderEmptyState();
         }
+
         document.addEventListener('keydown', e => {
             if (e.key === 'Enter') performSearch();
         });
+
         window.onload = loadCSV;
     </script>
 </body>
