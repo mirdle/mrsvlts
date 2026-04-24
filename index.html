@@ -79,7 +79,7 @@
                     allData = results.data.filter(row => Object.values(row).some(v => v && v.trim() !== ''));
                    
                     const debugEl = document.getElementById('debug');
-                    debugEl.innerHTML = `ver 1.2<br>Loaded ${allData.length} rows<br>Categories: ${new Set(allData.map(r => r[CATEGORY_COLUMN])).size}<br>Quick Filters: ${new Set(allData.map(r => r[QUICK_FILTER_COLUMN])).size}`;
+                    debugEl.innerHTML = `ver 1.3<br>Loaded ${allData.length} rows<br>Categories: ${new Set(allData.map(r => r[CATEGORY_COLUMN])).size}<br>Quick Filters: ${new Set(allData.map(r => r[QUICK_FILTER_COLUMN])).size}`;
                     populateDropdowns();
                     renderEmptyState();
                 }
@@ -109,33 +109,38 @@
             // Quick Filter dropdown
             const filterSelect = document.getElementById('quick-filter-select');
             filterSelect.innerHTML = '';
+
+            // All (with icon first)
             const allFilter = document.createElement('option');
-            allFilter.value = ''; allFilter.textContent = 'All';
+            allFilter.value = '';
+            allFilter.textContent = '📋 All';
             filterSelect.appendChild(allFilter);
 
-            // Add all Owned values (with icon for owned-yes)
+            // Owned values (icons first)
             const filterValues = [...new Set(allData.map(r => r[QUICK_FILTER_COLUMN]).filter(Boolean))].sort();
             filterValues.forEach(val => {
                 const opt = document.createElement('option');
                 opt.value = val;
                 if (val === 'owned-yes') {
                     opt.textContent = '✅ owned-yes';
+                } else if (val === 'owned-no') {
+                    opt.textContent = '❌ owned-no';
                 } else {
                     opt.textContent = val;
                 }
                 filterSelect.appendChild(opt);
             });
 
-            // Wanted filter option
+            // Wanted (icon first)
             const wantedOpt = document.createElement('option');
             wantedOpt.value = 'wanted-yes';
-            wantedOpt.textContent = 'Wanted ⭐';
+            wantedOpt.textContent = '⭐ Wanted';
             filterSelect.appendChild(wantedOpt);
 
-            // New: Last 10 Days filter
+            // Last 10 Days (icon first)
             const recentOpt = document.createElement('option');
             recentOpt.value = 'last-10-days';
-            recentOpt.textContent = 'Last 10 Days 📅';
+            recentOpt.textContent = '📅 Last 10 Days';
             filterSelect.appendChild(recentOpt);
 
             filterSelect.value = '';
@@ -189,7 +194,6 @@
                     if (quickFilter === 'wanted-yes') {
                         matchesFilter = (row.Wanted || '').trim() === 'wanted-yes';
                     } else if (quickFilter === 'last-10-days') {
-                        // Filter items released in the last 10 days
                         const tenDaysAgo = new Date();
                         tenDaysAgo.setDate(tenDaysAgo.getDate() - 10);
                         tenDaysAgo.setHours(0, 0, 0, 0);
