@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>RSVLTS MainDB Quick Search</title>
+    <title>RSVLTS MainDB Quick Search [WANTED ADDED]</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.4.1/papaparse.min.js"></script>
     <style>
@@ -23,7 +23,7 @@
 <body class="bg-zinc-950 text-zinc-100 min-h-screen flex flex-col">
     <!-- Header -->
     <div class="bg-black border-b border-zinc-800 px-4 py-3 flex items-center justify-between">
-        <h1 class="text-2xl font-semibold green-text tracking-tight">RSVLTS MainDB Quick Search</h1>
+        <h1 class="text-2xl font-semibold green-text tracking-tight">RSVLTS MainDB Quick Search <span class="text-yellow-400">[WANTED ADDED]</span></h1>
     </div>
     <!-- Status + small white Reset button -->
     <div id="status" class="px-4 py-3 bg-zinc-900 border-b border-zinc-800 flex items-center justify-between text-sm">
@@ -79,7 +79,7 @@
                     allData = results.data.filter(row => Object.values(row).some(v => v && v.trim() !== ''));
                    
                     const debugEl = document.getElementById('debug');
-                    debugEl.innerHTML = `Loaded ${allData.length} rows<br>Categories: ${new Set(allData.map(r => r[CATEGORY_COLUMN])).size}<br>Quick Filters: ${new Set(allData.map(r => r[QUICK_FILTER_COLUMN])).size}`;
+                    debugEl.innerHTML = `Loaded ${allData.length} rows<br>Categories: ${new Set(allData.map(r => r[CATEGORY_COLUMN])).size}<br>Quick Filters: ${new Set(allData.map(r => r[QUICK_FILTER_COLUMN])).size}<br><span class="text-yellow-400">🔥 WANTED FILTER LOADED 🔥</span>`;
                     populateDropdowns();
                     renderEmptyState();
                 }
@@ -87,7 +87,9 @@
         }
 
         function populateDropdowns() {
-            // Category dropdown (unchanged)
+            console.log('🚀 populateDropdowns() started');
+
+            // Category dropdown
             const catSelect = document.getElementById('category-select');
             catSelect.innerHTML = '';
             const allCat = document.createElement('option');
@@ -113,7 +115,6 @@
             allFilter.value = ''; allFilter.textContent = 'All';
             filterSelect.appendChild(allFilter);
 
-            // Add all Owned values
             const filterValues = [...new Set(allData.map(r => r[QUICK_FILTER_COLUMN]).filter(Boolean))].sort();
             filterValues.forEach(val => {
                 const opt = document.createElement('option');
@@ -121,12 +122,13 @@
                 filterSelect.appendChild(opt);
             });
 
-            // === NEW: Add "wanted-yes" option ===
+            // === NEW WANTED OPTION (now very obvious for testing) ===
             const wantedOpt = document.createElement('option');
             wantedOpt.value = 'wanted-yes';
-            wantedOpt.textContent = 'Wanted ⭐';
+            wantedOpt.textContent = '🔥 WANTED TEST 🔥';
             filterSelect.appendChild(wantedOpt);
 
+            console.log('✅ Wanted option added! Total options now:', filterSelect.options.length);
             filterSelect.value = '';
         }
 
