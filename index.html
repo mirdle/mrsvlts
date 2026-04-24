@@ -26,24 +26,19 @@
         <h1 class="text-2xl font-semibold green-text tracking-tight">RSVLTS MainDB Quick Search</h1>
     </div>
     
-    <!-- Status + small white Reset button (now more compact) -->
+    <!-- Status bar - compact + reset moved to right side -->
     <div id="status" class="px-4 py-2 bg-zinc-900 border-b border-zinc-800 flex items-start justify-between text-sm">
-        <!-- Left side: stacked vertically -->
+        <!-- Left side: success message + version -->
         <div class="flex flex-col gap-1">
             <div class="text-emerald-400 font-medium">✅ MainDB loaded successfully!</div>
-            
-            <!-- Version number right below the success message -->
-            <div id="version-info" class="text-[10px] text-emerald-400 font-medium">ver 1.4</div>
-            
-            <!-- Reset button below the version -->
-            <button onclick="resetAll()"
-                    class="text-white bg-zinc-700 hover:bg-zinc-600 px-4 py-1 rounded-xl text-xs font-medium flex items-center gap-1 transition-all w-fit">
-                <span class="text-emerald-400">🔄</span> Reset
-            </button>
+            <div id="version-info" class="text-[10px] text-emerald-400 font-medium">ver 1.5</div>
         </div>
 
-        <!-- Right side: debug info (unchanged) -->
-        <div id="debug" class="text-[10px] text-zinc-400 font-mono text-right"></div>
+        <!-- Right side: Reset button (green icon) -->
+        <button onclick="resetAll()"
+                class="text-white bg-zinc-700 hover:bg-zinc-600 px-4 py-1 rounded-xl text-xs font-medium flex items-center gap-1 transition-all">
+            <span class="text-emerald-400">🔄</span> Reset
+        </button>
     </div>
 
     <!-- Controls -->
@@ -87,9 +82,6 @@
                 skipEmptyLines: true,
                 complete: (results) => {
                     allData = results.data.filter(row => Object.values(row).some(v => v && v.trim() !== ''));
-                   
-                    const debugEl = document.getElementById('debug');
-                    debugEl.innerHTML = `Loaded ${allData.length} rows<br>Categories: ${new Set(allData.map(r => r[CATEGORY_COLUMN])).size}<br>Quick Filters: ${new Set(allData.map(r => r[QUICK_FILTER_COLUMN])).size}`;
                     populateDropdowns();
                     renderEmptyState();
                 }
