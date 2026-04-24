@@ -21,24 +21,21 @@
     </style>
 </head>
 <body class="bg-zinc-950 text-zinc-100 min-h-screen flex flex-col">
-
     <!-- Header -->
     <div class="bg-black border-b border-zinc-800 px-4 py-3 flex items-center justify-between">
         <h1 class="text-2xl font-semibold green-text tracking-tight">RSVLTS MainDB Quick Search</h1>
     </div>
-
     <!-- Status + small white Reset button -->
     <div id="status" class="px-4 py-3 bg-zinc-900 border-b border-zinc-800 flex items-center justify-between text-sm">
         <div class="flex items-center gap-3">
             <div class="text-emerald-400 font-medium">✅ MainDB loaded successfully!</div>
-            <button onclick="resetAll()" 
+            <button onclick="resetAll()"
                     class="text-white bg-zinc-700 hover:bg-zinc-600 px-4 py-1 rounded-xl text-xs font-medium flex items-center gap-1 transition-all">
                 🔄 Reset
             </button>
         </div>
         <div id="debug" class="text-[10px] text-zinc-400 font-mono"></div>
     </div>
-
     <!-- Controls -->
     <div class="border-b border-zinc-800 bg-zinc-900 p-4 space-y-4">
         <div class="grid grid-cols-2 gap-3">
@@ -51,31 +48,26 @@
                 <select id="quick-filter-select" class="w-full bg-zinc-800 border border-zinc-700 rounded-lg px-3 py-2 focus:border-[#81FF3D] focus:outline-none"></select>
             </div>
         </div>
-
         <div class="flex gap-2">
-            <input id="search-input" type="text" placeholder="Search inventory... (use &quot;exact&quot; or -exclude)" 
+            <input id="search-input" type="text" placeholder="Search inventory... (use &quot;exact&quot; or -exclude)"
                    class="flex-1 bg-zinc-800 border border-zinc-700 rounded-lg px-4 py-3 focus:border-[#81FF3D] focus:outline-none text-base">
-            <button onclick="performSearch()" 
+            <button onclick="performSearch()"
                     class="bg-[#81FF3D] hover:bg-[#9FFF5E] text-black px-6 rounded-lg font-semibold flex items-center gap-2">
                 🔎 Search
             </button>
         </div>
     </div>
-
     <!-- Cards -->
     <div class="flex-1 p-4 overflow-auto" id="results-container">
         <div id="cards-container" class="grid grid-cols-1 sm:grid-cols-2 gap-4"></div>
     </div>
-
     <script>
         const CSV_URL = "https://raw.githubusercontent.com/mirdle/mrsvlts/main/maindb.csv";
         const CATEGORY_COLUMN = "Item_Type";
         const QUICK_FILTER_COLUMN = "Owned";
         const SEARCH_COLUMNS = ["Title", "Notes", "Item_Type", "Color", "Material"];
-
         let allData = [];
         let filteredData = [];
-
         async function loadCSV() {
             Papa.parse(CSV_URL, {
                 download: true,
@@ -83,16 +75,14 @@
                 skipEmptyLines: true,
                 complete: (results) => {
                     allData = results.data.filter(row => Object.values(row).some(v => v && v.trim() !== ''));
-                    
+                   
                     const debugEl = document.getElementById('debug');
                     debugEl.innerHTML = `Loaded ${allData.length} rows<br>Categories: ${new Set(allData.map(r => r[CATEGORY_COLUMN])).size}<br>Quick Filters: ${new Set(allData.map(r => r[QUICK_FILTER_COLUMN])).size}`;
-
                     populateDropdowns();
                     renderEmptyState();
                 }
             });
         }
-
         function populateDropdowns() {
             // Category
             const catSelect = document.getElementById('category-select');
@@ -100,11 +90,9 @@
             const allCat = document.createElement('option');
             allCat.value = ''; allCat.textContent = 'All Categories';
             catSelect.appendChild(allCat);
-
             const shortSleeve = document.createElement('option');
             shortSleeve.value = 'Short Sleeve'; shortSleeve.textContent = 'Short Sleeve';
             catSelect.appendChild(shortSleeve);
-
             const otherCats = [...new Set(allData.map(r => r[CATEGORY_COLUMN]).filter(Boolean))]
                 .filter(c => c !== 'Short Sleeve')
                 .sort();
@@ -115,22 +103,27 @@
             });
             catSelect.value = '';
 
-            // Quick Filter
+            // Quick Filter (Owned values + new "wanted-yes" option)
             const filterSelect = document.getElementById('quick-filter-select');
             filterSelect.innerHTML = '';
             const allFilter = document.createElement('option');
             allFilter.value = ''; allFilter.textContent = 'All';
             filterSelect.appendChild(allFilter);
-
             const filterValues = [...new Set(allData.map(r => r[QUICK_FILTER_COLUMN]).filter(Boolean))].sort();
             filterValues.forEach(val => {
                 const opt = document.createElement('option');
                 opt.value = val; opt.textContent = val;
                 filterSelect.appendChild(opt);
             });
+            
+            // === NEW: Add "wanted-yes" as another quick filter option ===
+            const wantedOpt = document.createElement('option');
+            wantedOpt.value = 'wanted-yes';
+            wantedOpt.textContent = 'Wanted ⭐';
+            filterSelect.appendChild(wantedOpt);
+            
             filterSelect.value = '';
         }
-
         function renderEmptyState() {
             const container = document.getElementById('cards-container');
             container.innerHTML = `
@@ -140,8 +133,6 @@
                     <p class="text-sm mt-2">Use the search bar, category, or quick filter above</p>
                 </div>`;
         }
-
-        // ... (the rest of the functions are unchanged from your last working version)
         function matchesAdvancedSearch(row, searchTerm) {
             if (!searchTerm) return true;
             searchTerm = searchTerm.toLowerCase().trim();
@@ -157,7 +148,6 @@
             return positive.every(term => rowText.includes(term)) &&
                    negative.every(term => !rowText.includes(term));
         }
-
         function sortByReleaseDate(data) {
             return [...data].sort((a, b) => {
                 const dateA = new Date(a.Release_Date || '1900-01-01');
@@ -165,36 +155,41 @@
                 return dateB - dateA;
             });
         }
-
         function performSearch() {
             const searchTerm = document.getElementById('search-input').value;
             const category = document.getElementById('category-select').value;
             const quickFilter = document.getElementById('quick-filter-select').value;
-
+            
             filteredData = allData.filter(row => {
                 const matchesSearch = matchesAdvancedSearch(row, searchTerm);
                 const matchesCategory = !category || row[CATEGORY_COLUMN] === category;
-                const matchesFilter = !quickFilter || row[QUICK_FILTER_COLUMN] === quickFilter;
+                
+                // === UPDATED FILTER LOGIC: support both Owned values AND the new wanted-yes option ===
+                let matchesFilter = true;
+                if (quickFilter) {
+                    if (quickFilter === 'wanted-yes') {
+                        matchesFilter = (row.Wanted || '').trim() === 'wanted-yes';
+                    } else {
+                        matchesFilter = row[QUICK_FILTER_COLUMN] === quickFilter;
+                    }
+                }
+                
                 return matchesSearch && matchesCategory && matchesFilter;
             });
-
+            
             filteredData = sortByReleaseDate(filteredData);
             renderCards(filteredData);
         }
-
         function renderCards(data) {
             const container = document.getElementById('cards-container');
             container.innerHTML = '';
-
             if (data.length === 0) {
                 container.innerHTML = `<div class="col-span-full text-center py-12 text-zinc-400">No matches found</div>`;
                 return;
             }
-
             data.forEach(row => {
                 const wantedIcon = (row.Wanted === 'wanted-yes') ? '⭐ ' : '';
-                const ownedIcon  = (row.Owned === 'owned-yes') ? '✅ ' : '';
-
+                const ownedIcon = (row.Owned === 'owned-yes') ? '✅ ' : '';
                 const cardHTML = `
                     <a href="${row.URL || '#'}" target="_blank" rel="noopener noreferrer" class="card bg-zinc-900 rounded-2xl overflow-hidden border border-zinc-700 hover:border-[#81FF3D]/50 block">
                         ${row.Image_URL ? `<img src="${row.Image_URL}" loading="lazy" class="thumb-img w-full" alt="${row.Title}">` : ''}
@@ -213,7 +208,6 @@
                 container.innerHTML += cardHTML;
             });
         }
-
         function resetAll() {
             document.getElementById('search-input').value = '';
             document.getElementById('category-select').value = '';
@@ -221,11 +215,9 @@
             filteredData = [];
             renderEmptyState();
         }
-
         document.addEventListener('keydown', e => {
             if (e.key === 'Enter') performSearch();
         });
-
         window.onload = loadCSV;
     </script>
 </body>
