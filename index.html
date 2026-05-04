@@ -25,7 +25,7 @@
     <div class="bg-black border-b border-zinc-800 px-4 py-3 flex items-center justify-between">
         <h1 class="text-2xl font-semibold green-text tracking-tight">RSVLTS MainDB Quick Search</h1>
     </div>
-    
+   
     <!-- Status bar -->
     <div id="status" class="px-4 py-2 bg-zinc-900 border-b border-zinc-800 flex items-start justify-between text-sm">
         <!-- Left side -->
@@ -33,7 +33,6 @@
             <div class="text-emerald-400 font-medium">✅ MainDB loaded successfully!</div>
             <div id="version-info" class="text-[10px] text-emerald-400 font-medium">ver 1.7</div>
         </div>
-
         <!-- Right side: Reset button + total items loaded -->
         <div class="flex flex-col items-end gap-1">
             <button onclick="resetAll()"
@@ -43,7 +42,6 @@
             <div id="debug" class="text-[10px] text-zinc-400 font-mono text-right"></div>
         </div>
     </div>
-
     <!-- Controls -->
     <div class="border-b border-zinc-800 bg-zinc-900 p-4 space-y-4">
         <div class="grid grid-cols-2 gap-3">
@@ -67,9 +65,20 @@
     </div>
     <!-- Cards -->
     <div class="flex-1 p-4 overflow-auto" id="results-container">
+        <!-- New: Search results count header -->
+        <div id="results-count" class="mb-4 hidden px-2 py-2 bg-zinc-900 border border-zinc-700 rounded-2xl text-sm flex items-center justify-between">
+            <div class="flex items-center gap-2">
+                <span id="result-count" class="text-[#81FF3D] font-semibold text-xl tabular-nums">0</span>
+                <span class="text-zinc-400">results found</span>
+            </div>
+            <div class="text-xs text-zinc-500 flex items-center gap-1">
+                <span class="text-emerald-400">↓</span>
+                newest release first
+            </div>
+        </div>
+        
         <div id="cards-container" class="grid grid-cols-1 sm:grid-cols-2 gap-4"></div>
     </div>
-
     <script>
         const CSV_URL = "https://raw.githubusercontent.com/mirdle/mrsvlts/main/maindb.csv";
         const CATEGORY_COLUMN = "Item_Type";
@@ -77,7 +86,6 @@
         const SEARCH_COLUMNS = ["Title", "Notes", "Item_Type", "Color", "Material"];
         let allData = [];
         let filteredData = [];
-
         async function loadCSV() {
             Papa.parse(CSV_URL, {
                 download: true,
@@ -85,7 +93,7 @@
                 skipEmptyLines: true,
                 complete: (results) => {
                     allData = results.data.filter(row => Object.values(row).some(v => v && v.trim() !== ''));
-                   
+                  
                     const debugEl = document.getElementById('debug');
                     // Only show total number of items loaded (as requested)
                     debugEl.innerHTML = `Loaded ${allData.length} rows`;
@@ -94,7 +102,6 @@
                 }
             });
         }
-
         function populateDropdowns() {
             // Category dropdown
             const catSelect = document.getElementById('category-select');
@@ -114,17 +121,14 @@
                 catSelect.appendChild(opt);
             });
             catSelect.value = '';
-
             // Quick Filter dropdown
             const filterSelect = document.getElementById('quick-filter-select');
             filterSelect.innerHTML = '';
-
             // All (with icon first)
             const allFilter = document.createElement('option');
             allFilter.value = '';
             allFilter.textContent = '📋 All';
             filterSelect.appendChild(allFilter);
-
             // Owned values (icons first)
             const filterValues = [...new Set(allData.map(r => r[QUICK_FILTER_COLUMN]).filter(Boolean))].sort();
             filterValues.forEach(val => {
@@ -139,24 +143,23 @@
                 }
                 filterSelect.appendChild(opt);
             });
-
             // Wanted (icon first)
             const wantedOpt = document.createElement('option');
             wantedOpt.value = 'wanted-yes';
             wantedOpt.textContent = '⭐ Wanted';
             filterSelect.appendChild(wantedOpt);
-
             // Last 10 Days (icon first)
             const recentOpt = document.createElement('option');
             recentOpt.value = 'last-10-days';
             recentOpt.textContent = '📅 Last 10 Days';
             filterSelect.appendChild(recentOpt);
-
             filterSelect.value = '';
         }
-
         function renderEmptyState() {
             const container = document.getElementById('cards-container');
+            const countContainer = document.getElementById('results-count');
+            countContainer.classList.add('hidden');
+            
             container.innerHTML = `
                 <div class="col-span-full text-center py-20 text-zinc-400">
                     <div class="text-4xl mb-4">🔎</div>
@@ -164,7 +167,6 @@
                     <p class="text-sm mt-2">Use the search bar, category, or quick filter above</p>
                 </div>`;
         }
-
         function matchesAdvancedSearch(row, searchTerm) {
             if (!searchTerm) return true;
             searchTerm = searchTerm.toLowerCase().trim();
@@ -180,7 +182,6 @@
             return positive.every(term => rowText.includes(term)) &&
                    negative.every(term => !rowText.includes(term));
         }
-
         function sortByReleaseDate(data) {
             return [...data].sort((a, b) => {
                 const dateA = new Date(a.Release_Date || '1900-01-01');
@@ -188,16 +189,15 @@
                 return dateB - dateA;
             });
         }
-
         function performSearch() {
             const searchTerm = document.getElementById('search-input').value;
             const category = document.getElementById('category-select').value;
             const quickFilter = document.getElementById('quick-filter-select').value;
-            
+           
             filteredData = allData.filter(row => {
                 const matchesSearch = matchesAdvancedSearch(row, searchTerm);
                 const matchesCategory = !category || row[CATEGORY_COLUMN] === category;
-                
+               
                 let matchesFilter = true;
                 if (quickFilter) {
                     if (quickFilter === 'wanted-yes') {
@@ -206,7 +206,7 @@
                         const tenDaysAgo = new Date();
                         tenDaysAgo.setDate(tenDaysAgo.getDate() - 10);
                         tenDaysAgo.setHours(0, 0, 0, 0);
-                        
+                       
                         const releaseStr = row.Release_Date || '';
                         if (!releaseStr) {
                             matchesFilter = false;
@@ -221,18 +221,27 @@
                 }
                 return matchesSearch && matchesCategory && matchesFilter;
             });
-            
+           
             filteredData = sortByReleaseDate(filteredData);
             renderCards(filteredData);
         }
-
         function renderCards(data) {
             const container = document.getElementById('cards-container');
+            const countContainer = document.getElementById('results-count');
+            const countNumber = document.getElementById('result-count');
+            
             container.innerHTML = '';
+            
             if (data.length === 0) {
+                countContainer.classList.add('hidden');
                 container.innerHTML = `<div class="col-span-full text-center py-12 text-zinc-400">No matches found</div>`;
                 return;
             }
+            
+            // Show count at top of results
+            countNumber.textContent = data.length;
+            countContainer.classList.remove('hidden');
+            
             data.forEach(row => {
                 const wantedIcon = (row.Wanted === 'wanted-yes') ? '⭐ ' : '';
                 const ownedIcon = (row.Owned === 'owned-yes') ? '✅ ' : '';
@@ -254,7 +263,6 @@
                 container.innerHTML += cardHTML;
             });
         }
-
         function resetAll() {
             document.getElementById('search-input').value = '';
             document.getElementById('category-select').value = '';
@@ -262,11 +270,9 @@
             filteredData = [];
             renderEmptyState();
         }
-
         document.addEventListener('keydown', e => {
             if (e.key === 'Enter') performSearch();
         });
-
         window.onload = loadCSV;
     </script>
 </body>
