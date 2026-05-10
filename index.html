@@ -31,7 +31,7 @@
         <!-- Left side -->
         <div class="flex flex-col gap-1">
             <div class="text-emerald-400 font-medium">✅ MainDB loaded successfully!</div>
-            <div id="version-info" class="text-[10px] text-emerald-400 font-medium">ver 1.8</div>
+            <div id="version-info" class="text-[10px] text-emerald-400 font-medium">ver 1.9</div>
         </div>
         <!-- Right side: Reset button + total items loaded -->
         <div class="flex flex-col items-end gap-1">
@@ -53,7 +53,7 @@
                 <label class="flex items-center gap-1 text-xs text-zinc-400 mb-1"><span class="text-[#81FF3D]">⚡</span> Quick Filter:</label>
                 <select id="quick-filter-select" class="w-full bg-zinc-800 border border-zinc-700 rounded-lg px-3 py-2 focus:border-[#81FF3D] focus:outline-none"></select>
             </div>
-            <!-- New: Date Released dropdown (third column) -->
+            <!-- Date Released dropdown -->
             <div>
                 <label class="flex items-center gap-1 text-xs text-zinc-400 mb-1"><span class="text-[#81FF3D]">📅</span> Date Released:</label>
                 <select id="date-released-select" class="w-full bg-zinc-800 border border-zinc-700 rounded-lg px-3 py-2 focus:border-[#81FF3D] focus:outline-none"></select>
@@ -70,7 +70,7 @@
     </div>
     <!-- Cards -->
     <div class="flex-1 p-4 overflow-auto" id="results-container">
-        <!-- New: Search results count header -->
+        <!-- Search results count header -->
         <div id="results-count" class="mb-4 hidden px-2 py-2 bg-zinc-900 border border-zinc-700 rounded-2xl text-sm flex items-center justify-between">
             <div class="flex items-center gap-2">
                 <span id="result-count" class="text-[#81FF3D] font-semibold text-xl tabular-nums">0</span>
@@ -100,7 +100,6 @@
                     allData = results.data.filter(row => Object.values(row).some(v => v && v.trim() !== ''));
                  
                     const debugEl = document.getElementById('debug');
-                    // Only show total number of items loaded (as requested)
                     debugEl.innerHTML = `Loaded ${allData.length} rows`;
                     populateDropdowns();
                     renderEmptyState();
@@ -130,12 +129,10 @@
             // Quick Filter dropdown
             const filterSelect = document.getElementById('quick-filter-select');
             filterSelect.innerHTML = '';
-            // All (with icon first)
             const allFilter = document.createElement('option');
             allFilter.value = '';
             allFilter.textContent = '📋 All';
             filterSelect.appendChild(allFilter);
-            // Owned values (icons first)
             const filterValues = [...new Set(allData.map(r => r[QUICK_FILTER_COLUMN]).filter(Boolean))].sort();
             filterValues.forEach(val => {
                 const opt = document.createElement('option');
@@ -149,59 +146,62 @@
                 }
                 filterSelect.appendChild(opt);
             });
-            // Wanted (icon first)
             const wantedOpt = document.createElement('option');
             wantedOpt.value = 'wanted-yes';
             wantedOpt.textContent = '⭐ Wanted';
             filterSelect.appendChild(wantedOpt);
-            // Last 10 Days (icon first)
             const recentOpt = document.createElement('option');
             recentOpt.value = 'last-10-days';
             recentOpt.textContent = '📅 Last 10 Days';
             filterSelect.appendChild(recentOpt);
             filterSelect.value = '';
 
-            // NEW: Date Released dropdown (matches screenshot exactly + dynamic years)
+            // Date Released dropdown (with new Before/After 2024 d23 options)
             const dateSelect = document.getElementById('date-released-select');
             dateSelect.innerHTML = '';
 
-            // Any Date
             const anyDateOpt = document.createElement('option');
             anyDateOpt.value = '';
             anyDateOpt.textContent = '📅 Any Date';
             dateSelect.appendChild(anyDateOpt);
 
-            // No Release Date
             const noReleaseOpt = document.createElement('option');
             noReleaseOpt.value = 'no-release-date';
             noReleaseOpt.textContent = '📅 No Release Date';
             dateSelect.appendChild(noReleaseOpt);
 
-            // Last 10 Days
             const last10Opt = document.createElement('option');
             last10Opt.value = 'last-10-days';
             last10Opt.textContent = '📅 Last 10 Days';
             dateSelect.appendChild(last10Opt);
 
-            // Last 30 Days
             const last30Opt = document.createElement('option');
             last30Opt.value = 'last-30-days';
             last30Opt.textContent = '📅 Last 30 Days';
             dateSelect.appendChild(last30Opt);
 
-            // Last 90 Days
             const last90Opt = document.createElement('option');
             last90Opt.value = 'last-90-days';
             last90Opt.textContent = '📅 Last 90 Days';
             dateSelect.appendChild(last90Opt);
 
-            // This Year
             const thisYearOpt = document.createElement('option');
             thisYearOpt.value = 'this-year';
             thisYearOpt.textContent = '📅 This Year';
             dateSelect.appendChild(thisYearOpt);
 
-            // Dynamic years from data (sorted newest to oldest, matching screenshot style)
+            // NEW: Before 2024 d23 and After 2024 d23
+            const beforeD23Opt = document.createElement('option');
+            beforeD23Opt.value = 'before-2024-d23';
+            beforeD23Opt.textContent = '📅 Before 2024 d23';
+            dateSelect.appendChild(beforeD23Opt);
+
+            const afterD23Opt = document.createElement('option');
+            afterD23Opt.value = 'after-2024-d23';
+            afterD23Opt.textContent = '📅 After 2024 d23';
+            dateSelect.appendChild(afterD23Opt);
+
+            // Dynamic years (newest to oldest)
             const yearSet = new Set();
             allData.forEach(row => {
                 const relStr = (row.Release_Date || '').trim();
@@ -252,16 +252,40 @@
                    negative.every(term => !rowText.includes(term));
         }
 
-        // NEW: Date Released filter logic (handles all options from the screenshot)
+        // Updated date filter logic including new Before/After 2024 d23 options
         function matchesDateReleased(row, filterValue) {
             const releaseStr = (row.Release_Date || '').trim();
+            const dateAddedStr = (row.Date_Added || '').trim();
             
-            // No Release Date
             if (filterValue === 'no-release-date') {
                 return !releaseStr;
             }
             
-            // Any other filter requires a valid date
+            if (filterValue === 'before-2024-d23') {
+                // All items with no Release_Date AND added before August 2024
+                if (!releaseStr && dateAddedStr) {
+                    const addedDate = new Date(dateAddedStr);
+                    if (!isNaN(addedDate.getTime())) {
+                        const cutoff = new Date('2024-08-01');
+                        return addedDate < cutoff;
+                    }
+                }
+                return false;
+            }
+            
+            if (filterValue === 'after-2024-d23') {
+                // All items added on or after August 2024
+                if (dateAddedStr) {
+                    const addedDate = new Date(dateAddedStr);
+                    if (!isNaN(addedDate.getTime())) {
+                        const cutoff = new Date('2024-08-01');
+                        return addedDate >= cutoff;
+                    }
+                }
+                return false;
+            }
+            
+            // Any other filter requires a valid Release_Date
             if (!releaseStr) {
                 return false;
             }
@@ -314,7 +338,6 @@
             const searchTerm = document.getElementById('search-input').value;
             const category = document.getElementById('category-select').value;
             const quickFilter = document.getElementById('quick-filter-select').value;
-            // NEW: Get Date Released value
             const dateFilter = document.getElementById('date-released-select').value;
           
             filteredData = allData.filter(row => {
@@ -343,7 +366,6 @@
                     }
                 }
 
-                // NEW: Apply Date Released filter
                 let matchesDateReleasedFilter = true;
                 if (dateFilter) {
                     matchesDateReleasedFilter = matchesDateReleased(row, dateFilter);
@@ -369,7 +391,6 @@
                 return;
             }
            
-            // Show count at top of results
             countNumber.textContent = data.length;
             countContainer.classList.remove('hidden');
            
@@ -399,7 +420,6 @@
             document.getElementById('search-input').value = '';
             document.getElementById('category-select').value = '';
             document.getElementById('quick-filter-select').value = '';
-            // NEW: Reset the Date Released dropdown
             document.getElementById('date-released-select').value = '';
             filteredData = [];
             renderEmptyState();
