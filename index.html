@@ -28,12 +28,10 @@
   
     <!-- Status bar -->
     <div id="status" class="px-4 py-2 bg-zinc-900 border-b border-zinc-800 flex items-start justify-between text-sm">
-        <!-- Left side -->
         <div class="flex flex-col gap-1">
             <div class="text-emerald-400 font-medium">✅ MainDB loaded successfully!</div>
-            <div id="version-info" class="text-[10px] text-emerald-400 font-medium">ver 1.9</div>
+            <div id="version-info" class="text-[10px] text-emerald-400 font-medium">ver 2.0</div>
         </div>
-        <!-- Right side: Reset button + total items loaded -->
         <div class="flex flex-col items-end gap-1">
             <button onclick="resetAll()"
                     class="text-white bg-zinc-700 hover:bg-zinc-600 px-4 py-1 rounded-xl text-xs font-medium flex items-center gap-1 transition-all">
@@ -42,6 +40,7 @@
             <div id="debug" class="text-[10px] text-zinc-400 font-mono text-right"></div>
         </div>
     </div>
+
     <!-- Controls -->
     <div class="border-b border-zinc-800 bg-zinc-900 p-4 space-y-4">
         <div class="grid grid-cols-3 gap-3">
@@ -53,7 +52,6 @@
                 <label class="flex items-center gap-1 text-xs text-zinc-400 mb-1"><span class="text-[#81FF3D]">⚡</span> Quick Filter:</label>
                 <select id="quick-filter-select" class="w-full bg-zinc-800 border border-zinc-700 rounded-lg px-3 py-2 focus:border-[#81FF3D] focus:outline-none"></select>
             </div>
-            <!-- Date Released dropdown -->
             <div>
                 <label class="flex items-center gap-1 text-xs text-zinc-400 mb-1"><span class="text-[#81FF3D]">📅</span> Date Released:</label>
                 <select id="date-released-select" class="w-full bg-zinc-800 border border-zinc-700 rounded-lg px-3 py-2 focus:border-[#81FF3D] focus:outline-none"></select>
@@ -68,9 +66,8 @@
             </button>
         </div>
     </div>
-    <!-- Cards -->
+
     <div class="flex-1 p-4 overflow-auto" id="results-container">
-        <!-- Search results count header -->
         <div id="results-count" class="mb-4 hidden px-2 py-2 bg-zinc-900 border border-zinc-700 rounded-2xl text-sm flex items-center justify-between">
             <div class="flex items-center gap-2">
                 <span id="result-count" class="text-[#81FF3D] font-semibold text-xl tabular-nums">0</span>
@@ -81,16 +78,16 @@
                 newest release first
             </div>
         </div>
-       
         <div id="cards-container" class="grid grid-cols-1 sm:grid-cols-2 gap-4"></div>
     </div>
+
     <script>
         const CSV_URL = "https://raw.githubusercontent.com/mirdle/mrsvlts/main/maindb.csv";
         const CATEGORY_COLUMN = "Item_Type";
         const QUICK_FILTER_COLUMN = "Owned";
         const SEARCH_COLUMNS = ["Title", "Notes", "Item_Type", "Color", "Material"];
         let allData = [];
-        let filteredData = [];
+
         async function loadCSV() {
             Papa.parse(CSV_URL, {
                 download: true,
@@ -98,7 +95,6 @@
                 skipEmptyLines: true,
                 complete: (results) => {
                     allData = results.data.filter(row => Object.values(row).some(v => v && v.trim() !== ''));
-                 
                     const debugEl = document.getElementById('debug');
                     debugEl.innerHTML = `Loaded ${allData.length} rows`;
                     populateDropdowns();
@@ -106,8 +102,9 @@
                 }
             });
         }
+
         function populateDropdowns() {
-            // Category dropdown
+            // Category dropdown (unchanged)
             const catSelect = document.getElementById('category-select');
             catSelect.innerHTML = '';
             const allCat = document.createElement('option');
@@ -126,204 +123,128 @@
             });
             catSelect.value = '';
 
-            // Quick Filter dropdown
+            // Quick Filter dropdown (unchanged)
             const filterSelect = document.getElementById('quick-filter-select');
             filterSelect.innerHTML = '';
             const allFilter = document.createElement('option');
-            allFilter.value = '';
-            allFilter.textContent = '📋 All';
+            allFilter.value = ''; allFilter.textContent = '📋 All';
             filterSelect.appendChild(allFilter);
             const filterValues = [...new Set(allData.map(r => r[QUICK_FILTER_COLUMN]).filter(Boolean))].sort();
             filterValues.forEach(val => {
                 const opt = document.createElement('option');
                 opt.value = val;
-                if (val === 'owned-yes') {
-                    opt.textContent = '✅ owned-yes';
-                } else if (val === 'owned-no') {
-                    opt.textContent = '❌ owned-no';
-                } else {
-                    opt.textContent = val;
-                }
+                opt.textContent = val === 'owned-yes' ? '✅ owned-yes' : val === 'owned-no' ? '❌ owned-no' : val;
                 filterSelect.appendChild(opt);
             });
             const wantedOpt = document.createElement('option');
-            wantedOpt.value = 'wanted-yes';
-            wantedOpt.textContent = '⭐ Wanted';
+            wantedOpt.value = 'wanted-yes'; wantedOpt.textContent = '⭐ Wanted';
             filterSelect.appendChild(wantedOpt);
             const recentOpt = document.createElement('option');
-            recentOpt.value = 'last-10-days';
-            recentOpt.textContent = '📅 Last 10 Days';
+            recentOpt.value = 'last-10-days'; recentOpt.textContent = '📅 Last 10 Days';
             filterSelect.appendChild(recentOpt);
             filterSelect.value = '';
 
-            // Date Released dropdown (with new Before/After 2024 d23 options)
+            // Date Released dropdown
             const dateSelect = document.getElementById('date-released-select');
             dateSelect.innerHTML = '';
+            ['📅 Any Date', '📅 No Release Date', '📅 Last 10 Days', '📅 Last 30 Days', '📅 Last 90 Days', 
+             '📅 This Year', '📅 Before 2024 d23', '📅 After 2024 d23'].forEach((text, i) => {
+                const opt = document.createElement('option');
+                opt.value = ['','no-release-date','last-10-days','last-30-days','last-90-days','this-year','before-2024-d23','after-2024-d23'][i];
+                opt.textContent = text;
+                dateSelect.appendChild(opt);
+            });
 
-            const anyDateOpt = document.createElement('option');
-            anyDateOpt.value = '';
-            anyDateOpt.textContent = '📅 Any Date';
-            dateSelect.appendChild(anyDateOpt);
-
-            const noReleaseOpt = document.createElement('option');
-            noReleaseOpt.value = 'no-release-date';
-            noReleaseOpt.textContent = '📅 No Release Date';
-            dateSelect.appendChild(noReleaseOpt);
-
-            const last10Opt = document.createElement('option');
-            last10Opt.value = 'last-10-days';
-            last10Opt.textContent = '📅 Last 10 Days';
-            dateSelect.appendChild(last10Opt);
-
-            const last30Opt = document.createElement('option');
-            last30Opt.value = 'last-30-days';
-            last30Opt.textContent = '📅 Last 30 Days';
-            dateSelect.appendChild(last30Opt);
-
-            const last90Opt = document.createElement('option');
-            last90Opt.value = 'last-90-days';
-            last90Opt.textContent = '📅 Last 90 Days';
-            dateSelect.appendChild(last90Opt);
-
-            const thisYearOpt = document.createElement('option');
-            thisYearOpt.value = 'this-year';
-            thisYearOpt.textContent = '📅 This Year';
-            dateSelect.appendChild(thisYearOpt);
-
-            // NEW: Before 2024 d23 and After 2024 d23
-            const beforeD23Opt = document.createElement('option');
-            beforeD23Opt.value = 'before-2024-d23';
-            beforeD23Opt.textContent = '📅 Before 2024 d23';
-            dateSelect.appendChild(beforeD23Opt);
-
-            const afterD23Opt = document.createElement('option');
-            afterD23Opt.value = 'after-2024-d23';
-            afterD23Opt.textContent = '📅 After 2024 d23';
-            dateSelect.appendChild(afterD23Opt);
-
-            // Dynamic years (newest to oldest)
+            // Dynamic years
             const yearSet = new Set();
             allData.forEach(row => {
                 const relStr = (row.Release_Date || '').trim();
                 if (relStr) {
                     const d = new Date(relStr);
-                    if (!isNaN(d.getTime())) {
-                        yearSet.add(d.getFullYear());
-                    }
+                    if (!isNaN(d.getTime())) yearSet.add(d.getFullYear());
                 }
             });
-            const sortedYears = Array.from(yearSet).sort((a, b) => b - a);
-            sortedYears.forEach(year => {
-                const yearOpt = document.createElement('option');
-                yearOpt.value = year.toString();
-                yearOpt.textContent = `📅 ${year}`;
-                dateSelect.appendChild(yearOpt);
+            Array.from(yearSet).sort((a,b)=>b-a).forEach(year => {
+                const opt = document.createElement('option');
+                opt.value = year.toString();
+                opt.textContent = `📅 ${year}`;
+                dateSelect.appendChild(opt);
             });
-
             dateSelect.value = '';
-        }
-
-        function renderEmptyState() {
-            const container = document.getElementById('cards-container');
-            const countContainer = document.getElementById('results-count');
-            countContainer.classList.add('hidden');
-           
-            container.innerHTML = `
-                <div class="col-span-full text-center py-20 text-zinc-400">
-                    <div class="text-4xl mb-4">🔎</div>
-                    <p class="text-xl">Start searching to see results…</p>
-                    <p class="text-sm mt-2">Use the search bar, category, or quick filter above</p>
-                </div>`;
         }
 
         function matchesAdvancedSearch(row, searchTerm) {
             if (!searchTerm) return true;
             searchTerm = searchTerm.toLowerCase().trim();
             const terms = searchTerm.match(/"([^"]+)"|(\S+)/g) || [];
-            const positive = [];
-            const negative = [];
+            const positive = [], negative = [];
             terms.forEach(t => {
                 let term = t.replace(/"/g, '').trim();
-                if (term.startsWith('-')) negative.push(term.slice(1));
-                else positive.push(term);
+                term.startsWith('-') ? negative.push(term.slice(1)) : positive.push(term);
             });
             const rowText = SEARCH_COLUMNS.map(col => (row[col] || '').toString().toLowerCase()).join(' ');
-            return positive.every(term => rowText.includes(term)) &&
-                   negative.every(term => !rowText.includes(term));
+            return positive.every(term => rowText.includes(term)) && negative.every(term => !rowText.includes(term));
         }
 
-        // Updated date filter logic including new Before/After 2024 d23 options
+        // FIXED: Improved Before/After 2024 d23 logic
         function matchesDateReleased(row, filterValue) {
             const releaseStr = (row.Release_Date || '').trim();
             const dateAddedStr = (row.Date_Added || '').trim();
-            
+
             if (filterValue === 'no-release-date') {
                 return !releaseStr;
             }
-            
+
             if (filterValue === 'before-2024-d23') {
-                // All items with no Release_Date AND added before August 2024
-                if (!releaseStr && dateAddedStr) {
+                // NEW LOGIC: Items released before Aug 2024 OR (no release date + added before Aug 2024)
+                const cutoff = new Date('2024-08-01');
+                if (releaseStr) {
+                    const relDate = new Date(releaseStr);
+                    return !isNaN(relDate.getTime()) && relDate < cutoff;
+                } else if (dateAddedStr) {
                     const addedDate = new Date(dateAddedStr);
-                    if (!isNaN(addedDate.getTime())) {
-                        const cutoff = new Date('2024-08-01');
-                        return addedDate < cutoff;
-                    }
+                    return !isNaN(addedDate.getTime()) && addedDate < cutoff;
                 }
                 return false;
             }
-            
+
             if (filterValue === 'after-2024-d23') {
-                // All items added on or after August 2024
+                const cutoff = new Date('2024-08-01');
                 if (dateAddedStr) {
                     const addedDate = new Date(dateAddedStr);
-                    if (!isNaN(addedDate.getTime())) {
-                        const cutoff = new Date('2024-08-01');
-                        return addedDate >= cutoff;
-                    }
+                    if (!isNaN(addedDate.getTime())) return addedDate >= cutoff;
+                }
+                if (releaseStr) {
+                    const relDate = new Date(releaseStr);
+                    return !isNaN(relDate.getTime()) && relDate >= cutoff;
                 }
                 return false;
             }
-            
-            // Any other filter requires a valid Release_Date
-            if (!releaseStr) {
-                return false;
-            }
-            
+
+            // Rest of the existing logic (last X days, this year, specific years)
+            if (!releaseStr) return false;
             const releaseDate = new Date(releaseStr);
-            if (isNaN(releaseDate.getTime())) {
-                return false;
-            }
-            
-            const today = new Date();
-            today.setHours(0, 0, 0, 0);
-            
-            const relCopy = new Date(releaseDate);
-            relCopy.setHours(0, 0, 0, 0);
-            
+            if (isNaN(releaseDate.getTime())) return false;
+
+            const today = new Date(); today.setHours(0,0,0,0);
+            const relCopy = new Date(releaseDate); relCopy.setHours(0,0,0,0);
+
             if (filterValue === 'last-10-days') {
-                const cutoff = new Date(today);
-                cutoff.setDate(cutoff.getDate() - 10);
+                const cutoff = new Date(today); cutoff.setDate(cutoff.getDate() - 10);
                 return relCopy >= cutoff;
             } else if (filterValue === 'last-30-days') {
-                const cutoff = new Date(today);
-                cutoff.setDate(cutoff.getDate() - 30);
+                const cutoff = new Date(today); cutoff.setDate(cutoff.getDate() - 30);
                 return relCopy >= cutoff;
             } else if (filterValue === 'last-90-days') {
-                const cutoff = new Date(today);
-                cutoff.setDate(cutoff.getDate() - 90);
+                const cutoff = new Date(today); cutoff.setDate(cutoff.getDate() - 90);
                 return relCopy >= cutoff;
             } else if (filterValue === 'this-year') {
                 return releaseDate.getFullYear() === today.getFullYear();
             } else {
-                // Year filter (e.g. "2026")
                 const yearNum = parseInt(filterValue, 10);
-                if (!isNaN(yearNum)) {
-                    return releaseDate.getFullYear() === yearNum;
-                }
+                if (!isNaN(yearNum)) return releaseDate.getFullYear() === yearNum;
             }
-            
-            return true; // fallback
+            return true;
         }
 
         function sortByReleaseDate(data) {
@@ -339,61 +260,50 @@
             const category = document.getElementById('category-select').value;
             const quickFilter = document.getElementById('quick-filter-select').value;
             const dateFilter = document.getElementById('date-released-select').value;
-          
-            filteredData = allData.filter(row => {
+
+            let filteredData = allData.filter(row => {
                 const matchesSearch = matchesAdvancedSearch(row, searchTerm);
                 const matchesCategory = !category || row[CATEGORY_COLUMN] === category;
-              
-                let matchesFilter = true;
+
+                let matchesQuickFilter = true;
                 if (quickFilter) {
                     if (quickFilter === 'wanted-yes') {
-                        matchesFilter = (row.Wanted || '').trim() === 'wanted-yes';
+                        matchesQuickFilter = (row.Wanted || '').trim() === 'wanted-yes';
                     } else if (quickFilter === 'last-10-days') {
                         const tenDaysAgo = new Date();
                         tenDaysAgo.setDate(tenDaysAgo.getDate() - 10);
                         tenDaysAgo.setHours(0, 0, 0, 0);
-                      
                         const releaseStr = row.Release_Date || '';
-                        if (!releaseStr) {
-                            matchesFilter = false;
-                        } else {
-                            const releaseDate = new Date(releaseStr);
-                            releaseDate.setHours(0, 0, 0, 0);
-                            matchesFilter = releaseDate >= tenDaysAgo;
-                        }
+                        matchesQuickFilter = releaseStr && new Date(releaseStr) >= tenDaysAgo;
                     } else {
-                        matchesFilter = row[QUICK_FILTER_COLUMN] === quickFilter;
+                        matchesQuickFilter = row[QUICK_FILTER_COLUMN] === quickFilter;
                     }
                 }
 
-                let matchesDateReleasedFilter = true;
-                if (dateFilter) {
-                    matchesDateReleasedFilter = matchesDateReleased(row, dateFilter);
-                }
-              
-                return matchesSearch && matchesCategory && matchesFilter && matchesDateReleasedFilter;
+                const matchesDate = !dateFilter || matchesDateReleased(row, dateFilter);
+
+                return matchesSearch && matchesCategory && matchesQuickFilter && matchesDate;
             });
-          
+
             filteredData = sortByReleaseDate(filteredData);
             renderCards(filteredData);
         }
 
-        function renderCards(data) {
+        function renderCards(data) { /* unchanged from previous version */ 
             const container = document.getElementById('cards-container');
             const countContainer = document.getElementById('results-count');
             const countNumber = document.getElementById('result-count');
-           
             container.innerHTML = '';
-           
+
             if (data.length === 0) {
                 countContainer.classList.add('hidden');
                 container.innerHTML = `<div class="col-span-full text-center py-12 text-zinc-400">No matches found</div>`;
                 return;
             }
-           
+
             countNumber.textContent = data.length;
             countContainer.classList.remove('hidden');
-           
+
             data.forEach(row => {
                 const wantedIcon = (row.Wanted === 'wanted-yes') ? '⭐ ' : '';
                 const ownedIcon = (row.Owned === 'owned-yes') ? '✅ ' : '';
@@ -401,9 +311,7 @@
                     <a href="${row.URL || '#'}" target="_blank" rel="noopener noreferrer" class="card bg-zinc-900 rounded-2xl overflow-hidden border border-zinc-700 hover:border-[#81FF3D]/50 block">
                         ${row.Image_URL ? `<img src="${row.Image_URL}" loading="lazy" class="thumb-img w-full" alt="${row.Title}">` : ''}
                         <div class="p-4">
-                            <h3 class="font-semibold text-base leading-tight mb-2 line-clamp-2">
-                                ${wantedIcon}${ownedIcon}${row.Title || 'No title'}
-                            </h3>
+                            <h3 class="font-semibold text-base leading-tight mb-2 line-clamp-2">${wantedIcon}${ownedIcon}${row.Title || 'No title'}</h3>
                             <div class="text-xs text-zinc-400 space-y-1">
                                 <div><span class="text-zinc-500">Type:</span> ${row.Item_Type || '-'}</div>
                                 <div><span class="text-zinc-500">Bin#:</span> ${row['Bin#'] || '-'}</div>
@@ -421,13 +329,17 @@
             document.getElementById('category-select').value = '';
             document.getElementById('quick-filter-select').value = '';
             document.getElementById('date-released-select').value = '';
-            filteredData = [];
             renderEmptyState();
         }
 
-        document.addEventListener('keydown', e => {
-            if (e.key === 'Enter') performSearch();
-        });
+        function renderEmptyState() {
+            const container = document.getElementById('cards-container');
+            const countContainer = document.getElementById('results-count');
+            countContainer.classList.add('hidden');
+            container.innerHTML = `<div class="col-span-full text-center py-20 text-zinc-400"><div class="text-4xl mb-4">🔎</div><p class="text-xl">Start searching to see results…</p></div>`;
+        }
+
+        document.addEventListener('keydown', e => { if (e.key === 'Enter') performSearch(); });
         window.onload = loadCSV;
     </script>
 </body>
