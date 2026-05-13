@@ -45,7 +45,7 @@
         </div>
     </div>
 
-    <!-- Controls (unchanged) -->
+    <!-- Controls -->
     <div class="border-b border-zinc-800 bg-zinc-900 p-4 space-y-4">
         <div class="grid grid-cols-3 gap-3">
             <div>
@@ -95,10 +95,8 @@
                 </p>
             </div>
             <div class="flex gap-3 mt-8">
-                <button onclick="saveGitHubToken()" 
-                        class="flex-1 bg-[#81FF3D] text-black font-semibold py-4 rounded-2xl">Save Token</button>
-                <button onclick="hideGitHubModal()" 
-                        class="flex-1 bg-zinc-800 hover:bg-zinc-700 font-medium py-4 rounded-2xl">Cancel</button>
+                <button onclick="saveGitHubToken()" class="flex-1 bg-[#81FF3D] text-black font-semibold py-4 rounded-2xl">Save Token</button>
+                <button onclick="hideGitHubModal()" class="flex-1 bg-zinc-800 hover:bg-zinc-700 font-medium py-4 rounded-2xl">Cancel</button>
             </div>
         </div>
     </div>
@@ -147,32 +145,25 @@
 
         async function updateGitHubWanted(newTitle) {
             if (!githubToken) return;
-
             const trimmed = newTitle.trim();
             try {
-                // 1. Get current file + SHA
                 const getRes = await fetch(`https://api.github.com/repos/${REPO_OWNER}/${REPO_NAME}/contents/${FILE_PATH}`, {
                     headers: { Authorization: `token ${githubToken}` }
                 });
                 let sha = null;
                 let currentContent = "Title\n";
-
                 if (getRes.status === 200) {
                     const data = await getRes.json();
                     sha = data.sha;
                     currentContent = atob(data.content);
-                } else if (getRes.status !== 404) {
-                    throw new Error('Failed to fetch file');
-                }
+                } else if (getRes.status !== 404) throw new Error('Failed to fetch file');
 
-                // 2. Parse and add new title
                 const rows = currentContent.trim().split('\n');
                 const titles = new Set(rows.slice(1).map(r => r.trim().replace(/^"|"$/g, '')));
                 if (titles.has(trimmed)) return;
 
                 const newCSV = currentContent.trim() + `\n"${trimmed.replace(/"/g, '""')}"`;
 
-                // 3. Update on GitHub
                 const putRes = await fetch(`https://api.github.com/repos/${REPO_OWNER}/${REPO_NAME}/contents/${FILE_PATH}`, {
                     method: 'PUT',
                     headers: {
@@ -186,9 +177,7 @@
                     })
                 });
 
-                if (putRes.ok) {
-                    showToast(`🚀 Synced to GitHub: ${trimmed}`);
-                }
+                if (putRes.ok) showToast(`🚀 Synced to GitHub: ${trimmed}`);
             } catch (err) {
                 console.error(err);
                 showToast('⚠️ Could not sync to GitHub (check token)');
@@ -198,19 +187,13 @@
         function markAsWanted(title) {
             const trimmed = title.toString().trim();
             if (!trimmed || wantedTitles.has(trimmed)) return;
-
             wantedTitles.add(trimmed);
             localStorage.setItem('rsvlts_wanted_titles', JSON.stringify(Array.from(wantedTitles)));
             applyWantedStatus();
             performSearch();
-
-            // Real-time GitHub update
             updateGitHubWanted(trimmed);
-
             showToast(`⭐ ${trimmed} marked as wanted!`);
         }
-
-        // ... [rest of the code stays the same — loadCSV, applyWantedStatus, renderCards, etc.]
 
         function applyWantedStatus() {
             allData.forEach(row => {
@@ -232,13 +215,11 @@
 
                     loadGitHubToken();
 
-                    // Load localStorage wanted items
                     try {
                         const saved = JSON.parse(localStorage.getItem('rsvlts_wanted_titles') || '[]');
                         saved.forEach(t => t && wantedTitles.add(t.trim()));
                     } catch(e) {}
 
-                    // Load gitwanted.csv from GitHub
                     Papa.parse(WANTED_CSV_URL, {
                         download: true,
                         header: true,
@@ -264,6 +245,211 @@
             renderEmptyState();
         }
 
+        function populateDropdowns() {
+            // Category
+            const catSelect = document.getElementById('category-select');
+            catSelect.innerHTML = '<option value="">All Categories</option>';
+            const shortSleeve = document.createElement('option');
+            shortSleeve.value = 'Short Sleeve'; shortSleeve.textContent = 'Short Sleeve';
+            catSelect.appendChild(shortSleeve);
+            const otherCats = [...new Set(allData.map(r => r[CATEGORY_COLUMN]).filter(Boolean))]
+                .filter(c => c !== 'Short Sleeve').sort();
+            otherCats.forEach(cat => {
+                const opt = document.createElement('option');
+                opt.value = cat; opt.textContent = cat;
+                catSelect.appendChild(opt);
+            });
+
+            // Quick Filter
+            const filterSelect = document.getElementById('quick-filter-select');
+            filterSelect.innerHTML = '<option value="">📋 All</option>';
+            const filterValues = [...new Set(allData.map(r => r[QUICK_FILTER_COLUMN]).filter(Boolean))].sort();
+            filterValues.forEach(val => {
+                const opt = document.createElement('option');
+                opt.value = val;
+                opt.textContent = val === 'owned-yes' ? '✅ owned-yes' : val === 'owned-no' ? '❌ owned-no' : val;
+                filterSelect.appendChild(opt);
+            });
+            const wantedOpt = document.createElement('option');
+            wantedOpt.value = 'wanted-yes'; wantedOpt.textContent = '⭐ Wanted';
+            filterSelect.appendChild(wantedOpt);
+            const recentOpt = document.createElement('option');
+            recentOpt.value = 'last-10-days'; recentOpt.textContent = '📅 Last 10 Days';
+            filterSelect.appendChild(recentOpt);
+
+            // Date Released
+            const dateSelect = document.getElementById('date-released-select');
+            dateSelect.innerHTML = '';
+            ['📅 Any Date', '📅 No Release Date', '📅 Last 10 Days', '📅 Last 30 Days', '📅 Last 90 Days',
+             '📅 This Year', '📅 Before 2024 d23', '📅 After 2024 d23'].forEach((text, i) => {
+                const opt = document.createElement('option');
+                opt.value = ['','no-release-date','last-10-days','last-30-days','last-90-days','this-year','before-2024-d23','after-2024-d23'][i];
+                opt.textContent = text;
+                dateSelect.appendChild(opt);
+            });
+            const yearSet = new Set();
+            allData.forEach(row => {
+                const relStr = (row.Release_Date || '').trim();
+                if (relStr) {
+                    const d = new Date(relStr);
+                    if (!isNaN(d.getTime())) yearSet.add(d.getFullYear());
+                }
+            });
+            Array.from(yearSet).sort((a,b)=>b-a).forEach(year => {
+                const opt = document.createElement('option');
+                opt.value = year.toString();
+                opt.textContent = `📅 ${year}`;
+                dateSelect.appendChild(opt);
+            });
+        }
+
+        function matchesAdvancedSearch(row, searchTerm) {
+            if (!searchTerm) return true;
+            searchTerm = searchTerm.toLowerCase().trim();
+            const terms = searchTerm.match(/"([^"]+)"|(\S+)/g) || [];
+            const positive = [], negative = [];
+            terms.forEach(t => {
+                let term = t.replace(/"/g, '').trim();
+                term.startsWith('-') ? negative.push(term.slice(1)) : positive.push(term);
+            });
+            const rowText = SEARCH_COLUMNS.map(col => (row[col] || '').toString().toLowerCase()).join(' ');
+            return positive.every(term => rowText.includes(term)) && negative.every(term => !rowText.includes(term));
+        }
+
+        function matchesDateReleased(row, filterValue) {
+            const releaseStr = (row.Release_Date || '').trim();
+            const dateAddedStr = (row.Date_Added || '').trim();
+            if (filterValue === 'no-release-date') return !releaseStr;
+            if (filterValue === 'before-2024-d23') {
+                const cutoff = new Date('2024-08-01');
+                if (releaseStr) return new Date(releaseStr) < cutoff;
+                if (dateAddedStr) return new Date(dateAddedStr) < cutoff;
+                return false;
+            }
+            if (filterValue === 'after-2024-d23') {
+                const cutoff = new Date('2024-08-01');
+                if (dateAddedStr) return new Date(dateAddedStr) >= cutoff;
+                if (releaseStr) return new Date(releaseStr) >= cutoff;
+                return false;
+            }
+            if (!releaseStr) return false;
+            const releaseDate = new Date(releaseStr);
+            if (isNaN(releaseDate.getTime())) return false;
+            const today = new Date(); today.setHours(0,0,0,0);
+            const relCopy = new Date(releaseDate); relCopy.setHours(0,0,0,0);
+            if (filterValue === 'last-10-days') {
+                const cutoff = new Date(today); cutoff.setDate(cutoff.getDate() - 10);
+                return relCopy >= cutoff;
+            } else if (filterValue === 'last-30-days') {
+                const cutoff = new Date(today); cutoff.setDate(cutoff.getDate() - 30);
+                return relCopy >= cutoff;
+            } else if (filterValue === 'last-90-days') {
+                const cutoff = new Date(today); cutoff.setDate(cutoff.getDate() - 90);
+                return relCopy >= cutoff;
+            } else if (filterValue === 'this-year') {
+                return releaseDate.getFullYear() === today.getFullYear();
+            } else {
+                const yearNum = parseInt(filterValue, 10);
+                if (!isNaN(yearNum)) return releaseDate.getFullYear() === yearNum;
+            }
+            return true;
+        }
+
+        function sortByReleaseDate(data) {
+            return [...data].sort((a, b) => {
+                const dateA = new Date(a.Release_Date || '1900-01-01');
+                const dateB = new Date(b.Release_Date || '1900-01-01');
+                return dateB - dateA;
+            });
+        }
+
+        function performSearch() {
+            const searchTerm = document.getElementById('search-input').value;
+            const category = document.getElementById('category-select').value;
+            const quickFilter = document.getElementById('quick-filter-select').value;
+            const dateFilter = document.getElementById('date-released-select').value;
+
+            let filteredData = allData.filter(row => {
+                const matchesSearch = matchesAdvancedSearch(row, searchTerm);
+                const matchesCategory = !category || row[CATEGORY_COLUMN] === category;
+                let matchesQuickFilter = true;
+                if (quickFilter) {
+                    if (quickFilter === 'wanted-yes') {
+                        matchesQuickFilter = (row.Wanted || '').trim() === 'wanted-yes';
+                    } else if (quickFilter === 'last-10-days') {
+                        const tenDaysAgo = new Date(); tenDaysAgo.setDate(tenDaysAgo.getDate() - 10); tenDaysAgo.setHours(0,0,0,0);
+                        matchesQuickFilter = (row.Release_Date || '') && new Date(row.Release_Date) >= tenDaysAgo;
+                    } else {
+                        matchesQuickFilter = row[QUICK_FILTER_COLUMN] === quickFilter;
+                    }
+                }
+                const matchesDate = !dateFilter || matchesDateReleased(row, dateFilter);
+                return matchesSearch && matchesCategory && matchesQuickFilter && matchesDate;
+            });
+
+            filteredData = sortByReleaseDate(filteredData);
+            renderCards(filteredData);
+        }
+
+        function renderCards(data) {
+            const container = document.getElementById('cards-container');
+            const countContainer = document.getElementById('results-count');
+            const countNumber = document.getElementById('result-count');
+            container.innerHTML = '';
+            if (data.length === 0) {
+                countContainer.classList.add('hidden');
+                container.innerHTML = `<div class="col-span-full text-center py-12 text-zinc-400">No matches found</div>`;
+                return;
+            }
+            countNumber.textContent = data.length;
+            countContainer.classList.remove('hidden');
+
+            data.forEach(row => {
+                const wantedIcon = (row.Wanted === 'wanted-yes') ? '⭐ ' : '';
+                const ownedIcon = (row.Owned === 'owned-yes') ? '✅ ' : '';
+                const isOwned = (row.Owned || '').trim().toLowerCase() === 'owned-yes';
+                const isWanted = (row.Wanted || '').trim().toLowerCase() === 'wanted-yes';
+                const showMarkButton = !isOwned && !isWanted;
+
+                const cardHTML = `
+                    <a href="${row.URL || '#'}" target="_blank" rel="noopener noreferrer" class="card bg-zinc-900 rounded-2xl overflow-hidden border border-zinc-700 hover:border-[#81FF3D]/50 block">
+                        ${row.Image_URL ? `<img src="${row.Image_URL}" loading="lazy" class="thumb-img w-full" alt="${row.Title}">` : ''}
+                        <div class="p-4">
+                            <h3 class="font-semibold text-base leading-tight mb-2 line-clamp-2">${wantedIcon}${ownedIcon}${row.Title || 'No title'}</h3>
+                            <div class="text-xs text-zinc-400 space-y-1">
+                                <div><span class="text-zinc-500">Type:</span> ${row.Item_Type || '-'}</div>
+                                <div><span class="text-zinc-500">Bin#:</span> ${row['Bin#'] || '-'}</div>
+                                <div><span class="text-zinc-500">Release:</span> ${row.Release_Date || '-'}</div>
+                            </div>
+                            ${row.Notes ? `<p class="text-[10px] text-zinc-500 mt-3 line-clamp-3">${row.Notes}</p>` : ''}
+                            ${showMarkButton ? `
+                            <div onclick="event.stopPropagation()" class="mt-4 flex justify-end">
+                                <button onclick="markAsWanted('${escapeJS(row.Title)}'); event.stopPropagation(); return false;" 
+                                        class="inline-flex items-center gap-1.5 bg-[#81FF3D] hover:bg-[#9FFF5E] text-zinc-950 text-sm font-semibold px-5 py-2.5 rounded-2xl transition-all active:scale-95 shadow-inner">
+                                    ⭐ Mark as Wanted
+                                </button>
+                            </div>` : ''}
+                        </div>
+                    </a>`;
+                container.innerHTML += cardHTML;
+            });
+        }
+
+        function resetAll() {
+            document.getElementById('search-input').value = '';
+            document.getElementById('category-select').value = '';
+            document.getElementById('quick-filter-select').value = '';
+            document.getElementById('date-released-select').value = '';
+            renderEmptyState();
+        }
+
+        function renderEmptyState() {
+            const container = document.getElementById('cards-container');
+            const countContainer = document.getElementById('results-count');
+            countContainer.classList.add('hidden');
+            container.innerHTML = `<div class="col-span-full text-center py-20 text-zinc-400"><div class="text-4xl mb-4">🔎</div><p class="text-xl">Start searching to see results…</p></div>`;
+        }
+
         function showToast(message) {
             const toast = document.createElement('div');
             toast.className = 'toast fixed bottom-6 left-6 bg-[#81FF3D] text-black px-5 py-3 rounded-3xl font-semibold shadow-2xl flex items-center gap-2 z-[9999]';
@@ -271,9 +457,6 @@
             document.body.appendChild(toast);
             setTimeout(() => toast.remove(), 3200);
         }
-
-        // Rest of the script (populateDropdowns, performSearch, renderCards, etc.) is unchanged from the previous version
-        // (I kept it clean — just copy the full previous script body here if needed, but the core logic is identical)
 
         document.addEventListener('keydown', e => { if (e.key === 'Enter') performSearch(); });
         window.onload = loadCSV;
