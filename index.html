@@ -26,7 +26,7 @@
     <div id="status" class="px-4 py-2 bg-zinc-900 border-b border-zinc-800 flex items-start justify-between text-sm">
         <div class="flex flex-col gap-1">
             <div class="text-emerald-400 font-medium">✅ MainDB loaded successfully!</div>
-            <div id="version-info" class="text-[10px] text-emerald-400 font-medium">ver 3.0 • gitwanted.csv (Title + URL + QuickNotes) + realtime notes</div>
+            <div id="version-info" class="text-[10px] text-emerald-400 font-medium">ver 3.1 • gitwanted.csv realtime sync FIXED</div>
         </div>
         <div class="flex flex-col items-end gap-1">
             <div class="flex gap-2">
@@ -97,10 +97,6 @@
         const REPO_NAME = "mrsvlts";
         const FILE_PATH = "gitwanted.csv";
 
-        const CATEGORY_COLUMN = "Item_Type";
-        const QUICK_FILTER_COLUMN = "Owned";
-        const SEARCH_COLUMNS = ["Title", "Notes", "Item_Type", "Color", "Material"];
-
         let allData = [];
         let wantedTitles = new Set();
         let wantedNotes = new Map();
@@ -160,13 +156,10 @@
                 for (let i = 1; i < lines.length; i++) {
                     const line = lines[i].trim();
                     if (line) {
-                        const titleInLine = line.split(',')[0].replace(/^"|"$/g, '').trim();
-                        if (titleInLine === trimmedTitle) {
+                        const existingTitle = line.split(',')[0].replace(/^"|"$/g, '').trim();
+                        if (existingTitle === trimmedTitle) {
                             found = true;
-                            const escapedTitle = trimmedTitle.replace(/"/g, '""');
-                            const escapedUrl = trimmedUrl.replace(/"/g, '""');
-                            const escapedNotes = trimmedNotes.replace(/"/g, '""');
-                            newLines.push(`"${escapedTitle}","${escapedUrl}","${escapedNotes}"`);
+                            newLines.push(`"${trimmedTitle.replace(/"/g,'""')}","${trimmedUrl.replace(/"/g,'""')}","${trimmedNotes.replace(/"/g,'""')}"`);
                         } else {
                             newLines.push(line);
                         }
@@ -174,10 +167,7 @@
                 }
 
                 if (!found) {
-                    const escapedTitle = trimmedTitle.replace(/"/g, '""');
-                    const escapedUrl = trimmedUrl.replace(/"/g, '""');
-                    const escapedNotes = trimmedNotes.replace(/"/g, '""');
-                    newLines.push(`"${escapedTitle}","${escapedUrl}","${escapedNotes}"`);
+                    newLines.push(`"${trimmedTitle.replace(/"/g,'""')}","${trimmedUrl.replace(/"/g,'""')}","${trimmedNotes.replace(/"/g,'""')}"`);
                 }
 
                 const newCSV = newLines.join('\n');
@@ -290,7 +280,7 @@
             const shortSleeve = document.createElement('option');
             shortSleeve.value = 'Short Sleeve'; shortSleeve.textContent = 'Short Sleeve';
             catSelect.appendChild(shortSleeve);
-            const otherCats = [...new Set(allData.map(r => r[CATEGORY_COLUMN]).filter(Boolean))].filter(c => c !== 'Short Sleeve').sort();
+            const otherCats = [...new Set(allData.map(r => r["Item_Type"]).filter(Boolean))].filter(c => c !== 'Short Sleeve').sort();
             otherCats.forEach(cat => {
                 const opt = document.createElement('option');
                 opt.value = cat; opt.textContent = cat;
@@ -299,7 +289,7 @@
 
             const filterSelect = document.getElementById('quick-filter-select');
             filterSelect.innerHTML = '<option value="">📋 All</option>';
-            const filterValues = [...new Set(allData.map(r => r[QUICK_FILTER_COLUMN]).filter(Boolean))].sort();
+            const filterValues = [...new Set(allData.map(r => r["Owned"]).filter(Boolean))].sort();
             filterValues.forEach(val => {
                 const opt = document.createElement('option');
                 opt.value = val;
@@ -347,7 +337,7 @@
                 let term = t.replace(/"/g, '').trim();
                 term.startsWith('-') ? negative.push(term.slice(1)) : positive.push(term);
             });
-            const rowText = SEARCH_COLUMNS.map(col => (row[col] || '').toString().toLowerCase()).join(' ');
+            const rowText = ["Title", "Notes", "Item_Type", "Color", "Material"].map(col => (row[col] || '').toString().toLowerCase()).join(' ');
             return positive.every(term => rowText.includes(term)) && negative.every(term => !rowText.includes(term));
         }
 
@@ -406,7 +396,7 @@
 
             let filteredData = allData.filter(row => {
                 const matchesSearch = matchesAdvancedSearch(row, searchTerm);
-                const matchesCategory = !category || row[CATEGORY_COLUMN] === category;
+                const matchesCategory = !category || row["Item_Type"] === category;
                 let matchesQuickFilter = true;
                 if (quickFilter) {
                     if (quickFilter === 'wanted-yes') {
@@ -415,7 +405,7 @@
                         const tenDaysAgo = new Date(); tenDaysAgo.setDate(tenDaysAgo.getDate() - 10); tenDaysAgo.setHours(0,0,0,0);
                         matchesQuickFilter = (row.Release_Date || '') && new Date(row.Release_Date) >= tenDaysAgo;
                     } else {
-                        matchesQuickFilter = row[QUICK_FILTER_COLUMN] === quickFilter;
+                        matchesQuickFilter = row["Owned"] === quickFilter;
                     }
                 }
                 const matchesDate = !dateFilter || matchesDateReleased(row, dateFilter);
