@@ -130,7 +130,10 @@
         }
 
         async function syncToGitHub(title, url = '', quickNotes = '') {
-            if (!githubToken) return;
+            if (!githubToken) {
+                showToast('⚠️ No GitHub token set');
+                return;
+            }
             const trimmedTitle = title.trim();
             const trimmedUrl = (url || '').trim();
             const trimmedNotes = (quickNotes || '').trim();
@@ -180,6 +183,8 @@
                 if (putRes.ok) {
                     wantedNotes.set(trimmedTitle, trimmedNotes);
                     showToast(`✅ Saved to gitwanted.csv: ${trimmedTitle}`);
+                } else {
+                    showToast('⚠️ GitHub rejected the update');
                 }
             } catch (err) {
                 console.error(err);
