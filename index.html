@@ -28,7 +28,7 @@
     <div id="status" class="px-4 py-2 bg-zinc-900 border-b border-zinc-800 flex items-start justify-between text-sm">
         <div class="flex flex-col gap-1">
             <div class="text-emerald-400 font-medium">✅ MainDB loaded successfully!</div>
-            <div id="version-info" class="text-[10px] text-emerald-400 font-medium">ver 2.2 • gitwanted.csv + realtime GitHub sync</div>
+            <div id="version-info" class="text-[10px] text-emerald-400 font-medium">ver 2.3 • gitwanted.csv + realtime GitHub sync</div>
         </div>
         <div class="flex flex-col items-end gap-1">
             <div class="flex gap-2">
@@ -425,8 +425,8 @@
                             ${showMarkButton ? `
                             <div onclick="event.stopPropagation()" class="mt-4 flex justify-end">
                                 <button onclick="markAsWanted('${escapeJS(row.Title)}'); event.stopPropagation(); return false;" 
-                                        class="inline-flex items-center gap-1.5 bg-[#81FF3D] hover:bg-[#9FFF5E] text-zinc-950 text-sm font-semibold px-5 py-2.5 rounded-2xl transition-all active:scale-95 shadow-inner">
-                                    ⭐ Mark as Wanted
+                                        class="inline-flex items-center gap-1 bg-[#81FF3D] hover:bg-[#9FFF5E] text-zinc-950 text-xs font-semibold px-3 py-1.5 rounded-2xl transition-all active:scale-95 shadow-inner">
+                                    ⭐ Wanted
                                 </button>
                             </div>` : ''}
                         </div>
