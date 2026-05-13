@@ -28,7 +28,7 @@
     <div id="status" class="px-4 py-2 bg-zinc-900 border-b border-zinc-800 flex items-start justify-between text-sm">
         <div class="flex flex-col gap-1">
             <div class="text-emerald-400 font-medium">✅ MainDB loaded successfully!</div>
-            <div id="version-info" class="text-[10px] text-emerald-400 font-medium">ver 2.6 • gitwanted.csv (Title + URL + QuickNotes) + realtime GitHub sync</div>
+            <div id="version-info" class="text-[10px] text-emerald-400 font-medium">ver 2.7 • gitwanted.csv (Title + URL + QuickNotes) + edit notes</div>
         </div>
         <div class="flex flex-col items-end gap-1">
             <div class="flex gap-2">
@@ -143,11 +143,11 @@
             document.getElementById('github-modal').classList.add('hidden');
         }
 
-        async function updateGitHubWanted(newTitle, newUrl = '', newQuickNotes = '') {
+        async function syncToGitHub(title, url = '', quickNotes = '') {
             if (!githubToken) return;
-            const trimmedTitle = newTitle.trim();
-            const trimmedUrl = (newUrl || '').trim();
-            const trimmedNotes = (newQuickNotes || '').trim();
+            const trimmedTitle = title.trim();
+            const trimmedUrl = (url || '').trim();
+            const trimmedNotes = (quickNotes || '').trim();
             try {
                 const getRes = await fetch(`https://api.github.com/repos/${REPO_OWNER}/${REPO_NAME}/contents/${FILE_PATH}`, {
                     headers: { Authorization: `token ${githubToken}` }
@@ -164,19 +164,32 @@
                     throw new Error('Failed to fetch file');
                 }
 
-                const rows = currentContent.trim().split('\n');
-                const titles = new Set(rows.slice(1).map(r => {
-                    const cols = r.split(',');
-                    return cols[0].trim().replace(/^"|"$/g, '');
-                }));
-                if (titles.has(trimmedTitle)) return;
+                const lines = currentContent.trim().split('\n');
+                const header = lines[0];
+                const dataRows = lines.slice(1);
 
-                const escapedTitle = trimmedTitle.replace(/"/g, '""');
-                const escapedUrl = trimmedUrl.replace(/"/g, '""');
-                const escapedNotes = trimmedNotes.replace(/"/g, '""');
-                const newRow = `"${escapedTitle}","${escapedUrl}","${escapedNotes}"`;
+                let updated = false;
+                const newRows = dataRows.map(row => {
+                    const cols = row.split(',');
+                    const rowTitle = cols[0].trim().replace(/^"|"$/g, '');
+                    if (rowTitle === trimmedTitle) {
+                        updated = true;
+                        const escapedTitle = trimmedTitle.replace(/"/g, '""');
+                        const escapedUrl = trimmedUrl.replace(/"/g, '""');
+                        const escapedNotes = trimmedNotes.replace(/"/g, '""');
+                        return `"${escapedTitle}","${escapedUrl}","${escapedNotes}"`;
+                    }
+                    return row;
+                });
 
-                const newCSV = currentContent.trim() + `\n${newRow}`;
+                if (!updated) {
+                    const escapedTitle = trimmedTitle.replace(/"/g, '""');
+                    const escapedUrl = trimmedUrl.replace(/"/g, '""');
+                    const escapedNotes = trimmedNotes.replace(/"/g, '""');
+                    newRows.push(`"${escapedTitle}","${escapedUrl}","${escapedNotes}"`);
+                }
+
+                const newCSV = header + '\n' + newRows.join('\n');
 
                 const putRes = await fetch(`https://api.github.com/repos/${REPO_OWNER}/${REPO_NAME}/contents/${FILE_PATH}`, {
                     method: 'PUT',
@@ -185,13 +198,13 @@
                         'Content-Type': 'application/json'
                     },
                     body: JSON.stringify({
-                        message: `Add wanted: ${trimmedTitle}`,
+                        message: `Update notes for: ${trimmedTitle}`,
                         content: btoa(unescape(encodeURIComponent(newCSV))),
                         sha: sha
                     })
                 });
 
-                if (putRes.ok) showToast(`🚀 Synced to GitHub: ${trimmedTitle}`);
+                if (putRes.ok) showToast(`✅ Notes saved for ${trimmedTitle}`);
             } catch (err) {
                 console.error(err);
                 showToast('⚠️ Could not sync to GitHub (check token)');
@@ -202,15 +215,26 @@
             const trimmed = title.toString().trim();
             if (!trimmed || wantedTitles.has(trimmed)) return;
 
-            // NEW: Prompt for QuickNotes
             const quickNotes = window.prompt(`Quick notes for "${trimmed}"? (optional - leave blank for none)`, '') || '';
 
             wantedTitles.add(trimmed);
             localStorage.setItem('rsvlts_wanted_titles', JSON.stringify(Array.from(wantedTitles)));
             applyWantedStatus();
             performSearch();
-            updateGitHubWanted(trimmed, url, quickNotes);
+            syncToGitHub(trimmed, url, quickNotes);
             showToast(`⭐ ${trimmed} marked as wanted!`);
+        }
+
+        function editQuickNotes(title, url = '') {
+            const trimmed = title.toString().trim();
+            if (!trimmed) return;
+
+            // For already wanted items we just edit notes
+            const currentNotes = ''; // In future we could load existing, but for now prompt is simple
+            const newNotes = window.prompt(`Edit QuickNotes for "${trimmed}"\n\nCurrent notes (if any) will be replaced:\n\nLeave blank to clear.`, '') || '';
+
+            syncToGitHub(trimmed, url, newNotes);
+            showToast(`📝 Notes updated for ${trimmed}`);
         }
 
         function applyWantedStatus() {
@@ -342,4 +366,145 @@
                 return false;
             }
             if (filterValue === 'after-2024-d23') {
-               
+                const cutoff = new Date('2024-08-01');
+                if (dateAddedStr) return new Date(dateAddedStr) >= cutoff;
+                if (releaseStr) return new Date(releaseStr) >= cutoff;
+                return false;
+            }
+            if (!releaseStr) return false;
+            const releaseDate = new Date(releaseStr);
+            if (isNaN(releaseDate.getTime())) return false;
+            const today = new Date(); today.setHours(0,0,0,0);
+            const relCopy = new Date(releaseDate); relCopy.setHours(0,0,0,0);
+            if (filterValue === 'last-10-days') {
+                const cutoff = new Date(today); cutoff.setDate(cutoff.getDate() - 10);
+                return relCopy >= cutoff;
+            } else if (filterValue === 'last-30-days') {
+                const cutoff = new Date(today); cutoff.setDate(cutoff.getDate() - 30);
+                return relCopy >= cutoff;
+            } else if (filterValue === 'last-90-days') {
+                const cutoff = new Date(today); cutoff.setDate(cutoff.getDate() - 90);
+                return relCopy >= cutoff;
+            } else if (filterValue === 'this-year') {
+                return releaseDate.getFullYear() === today.getFullYear();
+            } else {
+                const yearNum = parseInt(filterValue, 10);
+                if (!isNaN(yearNum)) return releaseDate.getFullYear() === yearNum;
+            }
+            return true;
+        }
+
+        function sortByReleaseDate(data) {
+            return [...data].sort((a, b) => {
+                const dateA = new Date(a.Release_Date || '1900-01-01');
+                const dateB = new Date(b.Release_Date || '1900-01-01');
+                return dateB - dateA;
+            });
+        }
+
+        function performSearch() {
+            const searchTerm = document.getElementById('search-input').value;
+            const category = document.getElementById('category-select').value;
+            const quickFilter = document.getElementById('quick-filter-select').value;
+            const dateFilter = document.getElementById('date-released-select').value;
+
+            let filteredData = allData.filter(row => {
+                const matchesSearch = matchesAdvancedSearch(row, searchTerm);
+                const matchesCategory = !category || row[CATEGORY_COLUMN] === category;
+                let matchesQuickFilter = true;
+                if (quickFilter) {
+                    if (quickFilter === 'wanted-yes') {
+                        matchesQuickFilter = (row.Wanted || '').trim() === 'wanted-yes';
+                    } else if (quickFilter === 'last-10-days') {
+                        const tenDaysAgo = new Date(); tenDaysAgo.setDate(tenDaysAgo.getDate() - 10); tenDaysAgo.setHours(0,0,0,0);
+                        matchesQuickFilter = (row.Release_Date || '') && new Date(row.Release_Date) >= tenDaysAgo;
+                    } else {
+                        matchesQuickFilter = row[QUICK_FILTER_COLUMN] === quickFilter;
+                    }
+                }
+                const matchesDate = !dateFilter || matchesDateReleased(row, dateFilter);
+                return matchesSearch && matchesCategory && matchesQuickFilter && matchesDate;
+            });
+
+            filteredData = sortByReleaseDate(filteredData);
+            renderCards(filteredData);
+        }
+
+        function renderCards(data) {
+            const container = document.getElementById('cards-container');
+            const countContainer = document.getElementById('results-count');
+            const countNumber = document.getElementById('result-count');
+            container.innerHTML = '';
+            if (data.length === 0) {
+                countContainer.classList.add('hidden');
+                container.innerHTML = `<div class="col-span-full text-center py-12 text-zinc-400">No matches found</div>`;
+                return;
+            }
+            countNumber.textContent = data.length;
+            countContainer.classList.remove('hidden');
+
+            data.forEach(row => {
+                const wantedIcon = (row.Wanted === 'wanted-yes') ? '⭐ ' : '';
+                const ownedIcon = (row.Owned === 'owned-yes') ? '✅ ' : '';
+                const isOwned = (row.Owned || '').trim().toLowerCase() === 'owned-yes';
+                const isWanted = (row.Wanted || '').trim().toLowerCase() === 'wanted-yes';
+                const showMarkButton = !isOwned && !isWanted;
+
+                const cardHTML = `
+                    <a href="${row.URL || '#'}" target="_blank" rel="noopener noreferrer" class="card bg-zinc-900 rounded-2xl overflow-hidden border border-zinc-700 hover:border-[#81FF3D]/50 block">
+                        ${row.Image_URL ? `<img src="${row.Image_URL}" loading="lazy" class="thumb-img w-full" alt="${row.Title}">` : ''}
+                        <div class="p-4">
+                            <h3 class="font-semibold text-base leading-tight mb-2 line-clamp-2">${wantedIcon}${ownedIcon}${row.Title || 'No title'}</h3>
+                            <div class="text-xs text-zinc-400 space-y-1">
+                                <div><span class="text-zinc-500">Type:</span> ${row.Item_Type || '-'}</div>
+                                <div><span class="text-zinc-500">Bin#:</span> ${row['Bin#'] || '-'}</div>
+                                <div><span class="text-zinc-500">Release:</span> ${row.Release_Date || '-'}</div>
+                            </div>
+                            ${(row.Notes || showMarkButton || isOwned || isWanted) ? `
+                            <div class="mt-3 flex items-start gap-3">
+                                ${row.Notes ? `<p class="flex-1 text-[10px] text-zinc-500 line-clamp-3">${row.Notes}</p>` : '<div class="flex-1"></div>'}
+                                ${showMarkButton ? `
+                                <button onclick="markAsWanted('${escapeJS(row.Title)}', '${escapeJS(row.URL || '')}'); event.stopPropagation(); return false;" 
+                                        class="flex-shrink-0 inline-flex items-center bg-[#81FF3D] hover:bg-[#9FFF5E] text-zinc-950 text-[10px] font-semibold px-2 py-1 rounded-2xl transition-all active:scale-95 shadow-inner">
+                                    ⭐ Want
+                                </button>` : ''}
+                                ${(isOwned || isWanted) ? `
+                                <button onclick="editQuickNotes('${escapeJS(row.Title)}', '${escapeJS(row.URL || '')}'); event.stopPropagation(); return false;" 
+                                        class="flex-shrink-0 inline-flex items-center bg-[#81FF3D] hover:bg-[#9FFF5E] text-zinc-950 text-[10px] font-semibold px-2 py-1 rounded-2xl transition-all active:scale-95 shadow-inner">
+                                    📝 Notes
+                                </button>` : ''}
+                            </div>` : ''}
+                        </div>
+                    </a>`;
+                container.innerHTML += cardHTML;
+            });
+        }
+
+        function resetAll() {
+            document.getElementById('search-input').value = '';
+            document.getElementById('category-select').value = '';
+            document.getElementById('quick-filter-select').value = '';
+            document.getElementById('date-released-select').value = '';
+            renderEmptyState();
+        }
+
+        function renderEmptyState() {
+            const container = document.getElementById('cards-container');
+            const countContainer = document.getElementById('results-count');
+            countContainer.classList.add('hidden');
+            container.innerHTML = `<div class="col-span-full text-center py-20 text-zinc-400"><div class="text-4xl mb-4">🔎</div><p class="text-xl">Start searching to see results…</p></div>`;
+        }
+
+        function showToast(message) {
+            const toast = document.createElement('div');
+            toast.className = 'toast fixed bottom-6 left-6 bg-[#81FF3D] text-black px-5 py-3 rounded-3xl font-semibold shadow-2xl flex items-center gap-2 z-[9999]';
+            toast.innerHTML = message;
+            document.body.appendChild(toast);
+            setTimeout(() => toast.remove(), 3200);
+        }
+
+        document.addEventListener('keydown', e => { if (e.key === 'Enter') performSearch(); });
+        window.onload = loadCSV;
+    </script>
+</body>
+</html>
