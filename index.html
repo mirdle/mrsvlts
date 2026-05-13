@@ -28,7 +28,7 @@
     <div id="status" class="px-4 py-2 bg-zinc-900 border-b border-zinc-800 flex items-start justify-between text-sm">
         <div class="flex flex-col gap-1">
             <div class="text-emerald-400 font-medium">✅ MainDB loaded successfully!</div>
-            <div id="version-info" class="text-[10px] text-emerald-400 font-medium">ver 2.9 • gitwanted.csv (Title + URL + QuickNotes) + realtime edit notes</div>
+            <div id="version-info" class="text-[10px] text-emerald-400 font-medium">ver 2.9.1 • gitwanted.csv (Title + URL + QuickNotes) + realtime edit notes</div>
         </div>
         <div class="flex flex-col items-end gap-1">
             <div class="flex gap-2">
@@ -145,7 +145,10 @@
         }
 
         async function syncToGitHub(title, url = '', quickNotes = '') {
-            if (!githubToken) return;
+            if (!githubToken) {
+                showToast('⚠️ GitHub token not set');
+                return;
+            }
             const trimmedTitle = title.trim();
             const trimmedUrl = (url || '').trim();
             const trimmedNotes = (quickNotes || '').trim();
@@ -166,12 +169,14 @@
                     throw new Error('Failed to fetch file');
                 }
 
+                // Rebuild CSV robustly
                 const lines = currentContent.trim().split('\n');
-                const header = lines[0];
-                const dataRows = lines.slice(1);
+                const header = lines[0] || "Title,URL,QuickNotes";
+                let rows = lines.slice(1).filter(line => line.trim() !== '');
 
+                // Check if title already exists and update it
                 let updated = false;
-                const newRows = dataRows.map(row => {
+                const newRows = rows.map(row => {
                     const cols = row.split(',');
                     const rowTitle = cols[0].trim().replace(/^"|"$/g, '');
                     if (rowTitle === trimmedTitle) {
@@ -200,7 +205,7 @@
                         'Content-Type': 'application/json'
                     },
                     body: JSON.stringify({
-                        message: `Update notes for: ${trimmedTitle}`,
+                        message: `Update wanted: ${trimmedTitle}`,
                         content: btoa(unescape(encodeURIComponent(newCSV))),
                         sha: sha
                     })
@@ -208,11 +213,13 @@
 
                 if (putRes.ok) {
                     wantedNotes.set(trimmedTitle, trimmedNotes);
-                    showToast(`✅ Notes saved to gitwanted.csv for ${trimmedTitle}`);
+                    showToast(`✅ Saved to gitwanted.csv: ${trimmedTitle}`);
+                } else {
+                    throw new Error('GitHub PUT failed');
                 }
             } catch (err) {
                 console.error(err);
-                showToast('⚠️ Could not sync to GitHub (check token)');
+                showToast('⚠️ Could not sync to GitHub (check token or console)');
             }
         }
 
