@@ -26,7 +26,7 @@
     <div id="status" class="px-4 py-2 bg-zinc-900 border-b border-zinc-800 flex items-start justify-between text-sm">
         <div class="flex flex-col gap-1">
             <div class="text-emerald-400 font-medium">✅ MainDB loaded successfully!</div>
-            <div id="version-info" class="text-[10px] text-emerald-400 font-medium">ver 3.1 • gitwanted.csv realtime sync FIXED</div>
+            <div id="version-info" class="text-[10px] text-emerald-400 font-medium">ver 3.2 • gitwanted.csv (Title + URL + QuickNotes) - FIXED</div>
         </div>
         <div class="flex flex-col items-end gap-1">
             <div class="flex gap-2">
@@ -149,28 +149,20 @@
                     currentContent = atob(data.content);
                 }
 
-                const lines = currentContent.trim().split('\n');
-                let newLines = [lines[0] || "Title,URL,QuickNotes"];
+                const rows = currentContent.trim().split('\n');
+                const titles = new Set(rows.slice(1).map(r => {
+                    const cols = r.split(',');
+                    return cols[0].trim().replace(/^"|"$/g, '');
+                }));
 
-                let found = false;
-                for (let i = 1; i < lines.length; i++) {
-                    const line = lines[i].trim();
-                    if (line) {
-                        const existingTitle = line.split(',')[0].replace(/^"|"$/g, '').trim();
-                        if (existingTitle === trimmedTitle) {
-                            found = true;
-                            newLines.push(`"${trimmedTitle.replace(/"/g,'""')}","${trimmedUrl.replace(/"/g,'""')}","${trimmedNotes.replace(/"/g,'""')}"`);
-                        } else {
-                            newLines.push(line);
-                        }
-                    }
-                }
+                if (titles.has(trimmedTitle)) return;
 
-                if (!found) {
-                    newLines.push(`"${trimmedTitle.replace(/"/g,'""')}","${trimmedUrl.replace(/"/g,'""')}","${trimmedNotes.replace(/"/g,'""')}"`);
-                }
+                const escapedTitle = trimmedTitle.replace(/"/g, '""');
+                const escapedUrl = trimmedUrl.replace(/"/g, '""');
+                const escapedNotes = trimmedNotes.replace(/"/g, '""');
+                const newRow = `"${escapedTitle}","${escapedUrl}","${escapedNotes}"`;
 
-                const newCSV = newLines.join('\n');
+                const newCSV = currentContent.trim() + `\n${newRow}`;
 
                 const putRes = await fetch(`https://api.github.com/repos/${REPO_OWNER}/${REPO_NAME}/contents/${FILE_PATH}`, {
                     method: 'PUT',
@@ -179,7 +171,7 @@
                         'Content-Type': 'application/json'
                     },
                     body: JSON.stringify({
-                        message: `Update wanted: ${trimmedTitle}`,
+                        message: `Add wanted: ${trimmedTitle}`,
                         content: btoa(unescape(encodeURIComponent(newCSV))),
                         sha: sha
                     })
