@@ -114,7 +114,7 @@
 
         let allData = [];
         let wantedTitles = new Set();
-        let wantedNotes = new Map();   // NEW: title → QuickNotes
+        let wantedNotes = new Map();   // title → QuickNotes
         let githubToken = null;
 
         function escapeJS(str) {
@@ -207,7 +207,7 @@
                 });
 
                 if (putRes.ok) {
-                    wantedNotes.set(trimmedTitle, trimmedNotes); // update local cache
+                    wantedNotes.set(trimmedTitle, trimmedNotes);
                     showToast(`✅ Notes saved for ${trimmedTitle}`);
                 }
             } catch (err) {
@@ -298,13 +298,151 @@
             renderEmptyState();
         }
 
-        // ... (the rest of the functions — populateDropdowns, matchesAdvancedSearch, etc. — are unchanged and omitted here for brevity, but they are included in the full paste)
+        function populateDropdowns() {
+            // Category
+            const catSelect = document.getElementById('category-select');
+            catSelect.innerHTML = '<option value="">All Categories</option>';
+            const shortSleeve = document.createElement('option');
+            shortSleeve.value = 'Short Sleeve'; shortSleeve.textContent = 'Short Sleeve';
+            catSelect.appendChild(shortSleeve);
+            const otherCats = [...new Set(allData.map(r => r[CATEGORY_COLUMN]).filter(Boolean))]
+                .filter(c => c !== 'Short Sleeve').sort();
+            otherCats.forEach(cat => {
+                const opt = document.createElement('option');
+                opt.value = cat; opt.textContent = cat;
+                catSelect.appendChild(opt);
+            });
 
-        function populateDropdowns() { /* unchanged */ }
-        function matchesAdvancedSearch(row, searchTerm) { /* unchanged */ }
-        function matchesDateReleased(row, filterValue) { /* unchanged */ }
-        function sortByReleaseDate(data) { /* unchanged */ }
-        function performSearch() { /* unchanged */ }
+            // Quick Filter
+            const filterSelect = document.getElementById('quick-filter-select');
+            filterSelect.innerHTML = '<option value="">📋 All</option>';
+            const filterValues = [...new Set(allData.map(r => r[QUICK_FILTER_COLUMN]).filter(Boolean))].sort();
+            filterValues.forEach(val => {
+                const opt = document.createElement('option');
+                opt.value = val;
+                opt.textContent = val === 'owned-yes' ? '✅ owned-yes' : val === 'owned-no' ? '❌ owned-no' : val;
+                filterSelect.appendChild(opt);
+            });
+            const wantedOpt = document.createElement('option');
+            wantedOpt.value = 'wanted-yes'; wantedOpt.textContent = '⭐ Wanted';
+            filterSelect.appendChild(wantedOpt);
+            const recentOpt = document.createElement('option');
+            recentOpt.value = 'last-10-days'; recentOpt.textContent = '📅 Last 10 Days';
+            filterSelect.appendChild(recentOpt);
+
+            // Date Released
+            const dateSelect = document.getElementById('date-released-select');
+            dateSelect.innerHTML = '';
+            ['📅 Any Date', '📅 No Release Date', '📅 Last 10 Days', '📅 Last 30 Days', '📅 Last 90 Days',
+             '📅 This Year', '📅 Before 2024 d23', '📅 After 2024 d23'].forEach((text, i) => {
+                const opt = document.createElement('option');
+                opt.value = ['','no-release-date','last-10-days','last-30-days','last-90-days','this-year','before-2024-d23','after-2024-d23'][i];
+                opt.textContent = text;
+                dateSelect.appendChild(opt);
+            });
+            const yearSet = new Set();
+            allData.forEach(row => {
+                const relStr = (row.Release_Date || '').trim();
+                if (relStr) {
+                    const d = new Date(relStr);
+                    if (!isNaN(d.getTime())) yearSet.add(d.getFullYear());
+                }
+            });
+            Array.from(yearSet).sort((a,b)=>b-a).forEach(year => {
+                const opt = document.createElement('option');
+                opt.value = year.toString();
+                opt.textContent = `📅 ${year}`;
+                dateSelect.appendChild(opt);
+            });
+        }
+
+        function matchesAdvancedSearch(row, searchTerm) {
+            if (!searchTerm) return true;
+            searchTerm = searchTerm.toLowerCase().trim();
+            const terms = searchTerm.match(/"([^"]+)"|(\S+)/g) || [];
+            const positive = [], negative = [];
+            terms.forEach(t => {
+                let term = t.replace(/"/g, '').trim();
+                term.startsWith('-') ? negative.push(term.slice(1)) : positive.push(term);
+            });
+            const rowText = SEARCH_COLUMNS.map(col => (row[col] || '').toString().toLowerCase()).join(' ');
+            return positive.every(term => rowText.includes(term)) && negative.every(term => !rowText.includes(term));
+        }
+
+        function matchesDateReleased(row, filterValue) {
+            const releaseStr = (row.Release_Date || '').trim();
+            const dateAddedStr = (row.Date_Added || '').trim();
+            if (filterValue === 'no-release-date') return !releaseStr;
+            if (filterValue === 'before-2024-d23') {
+                const cutoff = new Date('2024-08-01');
+                if (releaseStr) return new Date(releaseStr) < cutoff;
+                if (dateAddedStr) return new Date(dateAddedStr) < cutoff;
+                return false;
+            }
+            if (filterValue === 'after-2024-d23') {
+                const cutoff = new Date('2024-08-01');
+                if (dateAddedStr) return new Date(dateAddedStr) >= cutoff;
+                if (releaseStr) return new Date(releaseStr) >= cutoff;
+                return false;
+            }
+            if (!releaseStr) return false;
+            const releaseDate = new Date(releaseStr);
+            if (isNaN(releaseDate.getTime())) return false;
+            const today = new Date(); today.setHours(0,0,0,0);
+            const relCopy = new Date(releaseDate); relCopy.setHours(0,0,0,0);
+            if (filterValue === 'last-10-days') {
+                const cutoff = new Date(today); cutoff.setDate(cutoff.getDate() - 10);
+                return relCopy >= cutoff;
+            } else if (filterValue === 'last-30-days') {
+                const cutoff = new Date(today); cutoff.setDate(cutoff.getDate() - 30);
+                return relCopy >= cutoff;
+            } else if (filterValue === 'last-90-days') {
+                const cutoff = new Date(today); cutoff.setDate(cutoff.getDate() - 90);
+                return relCopy >= cutoff;
+            } else if (filterValue === 'this-year') {
+                return releaseDate.getFullYear() === today.getFullYear();
+            } else {
+                const yearNum = parseInt(filterValue, 10);
+                if (!isNaN(yearNum)) return releaseDate.getFullYear() === yearNum;
+            }
+            return true;
+        }
+
+        function sortByReleaseDate(data) {
+            return [...data].sort((a, b) => {
+                const dateA = new Date(a.Release_Date || '1900-01-01');
+                const dateB = new Date(b.Release_Date || '1900-01-01');
+                return dateB - dateA;
+            });
+        }
+
+        function performSearch() {
+            const searchTerm = document.getElementById('search-input').value;
+            const category = document.getElementById('category-select').value;
+            const quickFilter = document.getElementById('quick-filter-select').value;
+            const dateFilter = document.getElementById('date-released-select').value;
+
+            let filteredData = allData.filter(row => {
+                const matchesSearch = matchesAdvancedSearch(row, searchTerm);
+                const matchesCategory = !category || row[CATEGORY_COLUMN] === category;
+                let matchesQuickFilter = true;
+                if (quickFilter) {
+                    if (quickFilter === 'wanted-yes') {
+                        matchesQuickFilter = (row.Wanted || '').trim() === 'wanted-yes';
+                    } else if (quickFilter === 'last-10-days') {
+                        const tenDaysAgo = new Date(); tenDaysAgo.setDate(tenDaysAgo.getDate() - 10); tenDaysAgo.setHours(0,0,0,0);
+                        matchesQuickFilter = (row.Release_Date || '') && new Date(row.Release_Date) >= tenDaysAgo;
+                    } else {
+                        matchesQuickFilter = row[QUICK_FILTER_COLUMN] === quickFilter;
+                    }
+                }
+                const matchesDate = !dateFilter || matchesDateReleased(row, dateFilter);
+                return matchesSearch && matchesCategory && matchesQuickFilter && matchesDate;
+            });
+
+            filteredData = sortByReleaseDate(filteredData);
+            renderCards(filteredData);
+        }
 
         function renderCards(data) {
             const container = document.getElementById('cards-container');
@@ -356,9 +494,28 @@
             });
         }
 
-        function resetAll() { /* unchanged */ }
-        function renderEmptyState() { /* unchanged */ }
-        function showToast(message) { /* unchanged */ }
+        function resetAll() {
+            document.getElementById('search-input').value = '';
+            document.getElementById('category-select').value = '';
+            document.getElementById('quick-filter-select').value = '';
+            document.getElementById('date-released-select').value = '';
+            renderEmptyState();
+        }
+
+        function renderEmptyState() {
+            const container = document.getElementById('cards-container');
+            const countContainer = document.getElementById('results-count');
+            countContainer.classList.add('hidden');
+            container.innerHTML = `<div class="col-span-full text-center py-20 text-zinc-400"><div class="text-4xl mb-4">🔎</div><p class="text-xl">Start searching to see results…</p></div>`;
+        }
+
+        function showToast(message) {
+            const toast = document.createElement('div');
+            toast.className = 'toast fixed bottom-6 left-6 bg-[#81FF3D] text-black px-5 py-3 rounded-3xl font-semibold shadow-2xl flex items-center gap-2 z-[9999]';
+            toast.innerHTML = message;
+            document.body.appendChild(toast);
+            setTimeout(() => toast.remove(), 3200);
+        }
 
         document.addEventListener('keydown', e => { if (e.key === 'Enter') performSearch(); });
         window.onload = loadCSV;
