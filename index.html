@@ -28,7 +28,7 @@
     <div id="status" class="px-4 py-2 bg-zinc-900 border-b border-zinc-800 flex items-start justify-between text-sm">
         <div class="flex flex-col gap-1">
             <div class="text-emerald-400 font-medium">✅ MainDB loaded successfully!</div>
-            <div id="version-info" class="text-[10px] text-emerald-400 font-medium">ver 2.8 • gitwanted.csv (Title + URL + QuickNotes) + edit notes</div>
+            <div id="version-info" class="text-[10px] text-emerald-400 font-medium">ver 2.9 • gitwanted.csv (Title + URL + QuickNotes) + realtime edit notes</div>
         </div>
         <div class="flex flex-col items-end gap-1">
             <div class="flex gap-2">
@@ -208,7 +208,7 @@
 
                 if (putRes.ok) {
                     wantedNotes.set(trimmedTitle, trimmedNotes);
-                    showToast(`✅ Notes saved for ${trimmedTitle}`);
+                    showToast(`✅ Notes saved to gitwanted.csv for ${trimmedTitle}`);
                 }
             } catch (err) {
                 console.error(err);
@@ -299,7 +299,6 @@
         }
 
         function populateDropdowns() {
-            // Category
             const catSelect = document.getElementById('category-select');
             catSelect.innerHTML = '<option value="">All Categories</option>';
             const shortSleeve = document.createElement('option');
@@ -313,7 +312,6 @@
                 catSelect.appendChild(opt);
             });
 
-            // Quick Filter
             const filterSelect = document.getElementById('quick-filter-select');
             filterSelect.innerHTML = '<option value="">📋 All</option>';
             const filterValues = [...new Set(allData.map(r => r[QUICK_FILTER_COLUMN]).filter(Boolean))].sort();
@@ -330,7 +328,6 @@
             recentOpt.value = 'last-10-days'; recentOpt.textContent = '📅 Last 10 Days';
             filterSelect.appendChild(recentOpt);
 
-            // Date Released
             const dateSelect = document.getElementById('date-released-select');
             dateSelect.innerHTML = '';
             ['📅 Any Date', '📅 No Release Date', '📅 Last 10 Days', '📅 Last 30 Days', '📅 Last 90 Days',
