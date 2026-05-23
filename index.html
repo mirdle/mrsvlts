@@ -25,15 +25,15 @@
 
     <div id="status" class="px-4 py-2 bg-zinc-900 border-b border-zinc-800 flex items-start justify-between text-sm">
         <div class="flex flex-col gap-1">
-            <div class="text-emerald-400 font-medium">✅ MainDB loaded successfully!</div>
-            <div id="version-info" class="text-[10px] text-emerald-400 font-medium">ver 3.4</div>
+            <div id="main-status" class="text-emerald-400 font-medium">
+                -- MainDB - ver 3.4 - loaded <span id="loaded-rows" class="tabular-nums font-semibold">0</span> rows
+            </div>
         </div>
         <div class="flex flex-col items-end gap-1">
             <div class="flex gap-2">
                 <button onclick="showGitHubSettings()" class="text-white bg-zinc-700 hover:bg-zinc-600 px-4 py-1 rounded-xl text-xs font-medium flex items-center gap-1">⚙️ GitHub Settings</button>
                 <button onclick="resetAll()" class="text-white bg-zinc-700 hover:bg-zinc-600 px-4 py-1 rounded-xl text-xs font-medium flex items-center gap-1"><span class="text-emerald-400">🔄</span> Reset</button>
             </div>
-            <div id="debug" class="text-[10px] text-zinc-400 font-mono text-right"></div>
         </div>
     </div>
 
@@ -236,7 +236,9 @@
                 skipEmptyLines: true,
                 complete: (results) => {
                     allData = results.data.filter(row => Object.values(row).some(v => v && v.trim() !== ''));
-                    document.getElementById('debug').innerHTML = `Loaded ${allData.length} rows`;
+
+                    // Update the new status bar with row count
+                    document.getElementById('loaded-rows').textContent = allData.length;
 
                     loadGitHubToken();
 
