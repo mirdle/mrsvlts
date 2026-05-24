@@ -25,7 +25,7 @@
 
     <div id="status" class="px-4 py-2 bg-zinc-900 border-b border-zinc-800 flex items-center justify-between text-sm">
         <div id="main-status" class="text-emerald-400 font-medium">
-            MainDB ver 3.4 <span id="loaded-rows" class="tabular-nums font-semibold">0</span> rows
+            MainDB ver 3.4 <span id="loaded-rows" class="tabular-nums font-semibold">0</span>
         </div>
         <div class="flex gap-2">
             <button onclick="showGitHubSettings()" 
@@ -235,7 +235,7 @@
                 complete: (results) => {
                     allData = results.data.filter(row => Object.values(row).some(v => v && v.trim() !== ''));
 
-                    // Update status bar with clean row count
+                    // Update status bar with clean number only
                     document.getElementById('loaded-rows').textContent = allData.length;
 
                     loadGitHubToken();
