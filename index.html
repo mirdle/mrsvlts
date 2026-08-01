@@ -36,7 +36,7 @@
     </div>
 
     <div class="border-b border-zinc-800 bg-zinc-900 p-4 space-y-4">
-        <div class="grid grid-cols-3 gap-3">
+        <div class="grid grid-cols-2 sm:grid-cols-4 gap-3">
             <div>
                 <label class="flex items-center gap-1 text-xs text-zinc-400 mb-1"><span class="text-[#81FF3D]">📂</span> Category:</label>
                 <select id="category-select" class="w-full bg-zinc-800 border border-zinc-700 rounded-lg px-3 py-2 focus:border-[#81FF3D] focus:outline-none"></select>
@@ -48,6 +48,34 @@
             <div>
                 <label class="flex items-center gap-1 text-xs text-zinc-400 mb-1"><span class="text-[#81FF3D]">📅</span> Date Released:</label>
                 <select id="date-released-select" class="w-full bg-zinc-800 border border-zinc-700 rounded-lg px-3 py-2 focus:border-[#81FF3D] focus:outline-none"></select>
+            </div>
+            <div>
+                <label class="flex items-center gap-1 text-xs text-zinc-400 mb-1"><span class="text-[#81FF3D]">📅</span> Date Added:</label>
+                <select id="date-added-select" class="w-full bg-zinc-800 border border-zinc-700 rounded-lg px-3 py-2 focus:border-[#81FF3D] focus:outline-none"></select>
+            </div>
+        </div>
+        <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+            <div>
+                <label class="flex items-center gap-1 text-xs text-zinc-400 mb-1"><span class="text-[#81FF3D]">📅</span> Release Date Range:</label>
+                <div class="flex items-center gap-2 flex-wrap">
+                    <span class="text-xs text-zinc-500">From</span>
+                    <select id="release-from-month" class="bg-zinc-800 border border-zinc-700 rounded-lg px-2 py-1.5 text-sm focus:border-[#81FF3D] focus:outline-none"></select>
+                    <select id="release-from-year" class="bg-zinc-800 border border-zinc-700 rounded-lg px-2 py-1.5 text-sm focus:border-[#81FF3D] focus:outline-none"></select>
+                    <span class="text-xs text-zinc-500">To</span>
+                    <select id="release-to-month" class="bg-zinc-800 border border-zinc-700 rounded-lg px-2 py-1.5 text-sm focus:border-[#81FF3D] focus:outline-none"></select>
+                    <select id="release-to-year" class="bg-zinc-800 border border-zinc-700 rounded-lg px-2 py-1.5 text-sm focus:border-[#81FF3D] focus:outline-none"></select>
+                </div>
+            </div>
+            <div>
+                <label class="flex items-center gap-1 text-xs text-zinc-400 mb-1"><span class="text-[#81FF3D]">📅</span> Date Added Range:</label>
+                <div class="flex items-center gap-2 flex-wrap">
+                    <span class="text-xs text-zinc-500">From</span>
+                    <select id="added-from-month" class="bg-zinc-800 border border-zinc-700 rounded-lg px-2 py-1.5 text-sm focus:border-[#81FF3D] focus:outline-none"></select>
+                    <select id="added-from-year" class="bg-zinc-800 border border-zinc-700 rounded-lg px-2 py-1.5 text-sm focus:border-[#81FF3D] focus:outline-none"></select>
+                    <span class="text-xs text-zinc-500">To</span>
+                    <select id="added-to-month" class="bg-zinc-800 border border-zinc-700 rounded-lg px-2 py-1.5 text-sm focus:border-[#81FF3D] focus:outline-none"></select>
+                    <select id="added-to-year" class="bg-zinc-800 border border-zinc-700 rounded-lg px-2 py-1.5 text-sm focus:border-[#81FF3D] focus:outline-none"></select>
+                </div>
             </div>
         </div>
         <div class="flex gap-2">
@@ -102,6 +130,8 @@
         let wantedTitles = new Set();
         let wantedNotes = new Map();
         let githubToken = null;
+
+        const MONTH_NAMES = ['Any','Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
 
         function escapeJS(str) {
             return str ? str.toString().replace(/\\/g, '\\\\').replace(/'/g, "\\'") : '';
@@ -360,12 +390,87 @@
                     if (!isNaN(d.getTime())) yearSet.add(d.getFullYear());
                 }
             });
-            Array.from(yearSet).sort((a,b)=>b-a).forEach(year => {
+            const yearsSorted = Array.from(yearSet).sort((a,b)=>b-a);
+            yearsSorted.forEach(year => {
                 const opt = document.createElement('option');
                 opt.value = year.toString();
                 opt.textContent = `📅 ${year}`;
                 dateSelect.appendChild(opt);
             });
+
+            populateMonthYearSelect('release-from-month', 'release-from-year', yearsSorted);
+            populateMonthYearSelect('release-to-month', 'release-to-year', yearsSorted);
+
+            const addedSelect = document.getElementById('date-added-select');
+            addedSelect.innerHTML = '';
+            ['📅 Any Date', '📅 No Date Added', '📅 Last 10 Days', '📅 Last 30 Days', '📅 Last 90 Days', '📅 This Year']
+                .forEach((text, i) => {
+                    const opt = document.createElement('option');
+                    opt.value = ['','no-date-added','last-10-days','last-30-days','last-90-days','this-year'][i];
+                    opt.textContent = text;
+                    addedSelect.appendChild(opt);
+                });
+            const addedYearSet = new Set();
+            allData.forEach(row => {
+                const addedStr = (row.Date_Added || '').trim();
+                if (addedStr) {
+                    const d = new Date(addedStr);
+                    if (!isNaN(d.getTime())) addedYearSet.add(d.getFullYear());
+                }
+            });
+            const addedYearsSorted = Array.from(addedYearSet).sort((a,b)=>b-a);
+            addedYearsSorted.forEach(year => {
+                const opt = document.createElement('option');
+                opt.value = year.toString();
+                opt.textContent = `📅 ${year}`;
+                addedSelect.appendChild(opt);
+            });
+
+            populateMonthYearSelect('added-from-month', 'added-from-year', addedYearsSorted);
+            populateMonthYearSelect('added-to-month', 'added-to-year', addedYearsSorted);
+        }
+
+        function populateMonthYearSelect(monthId, yearId, years) {
+            const monthSel = document.getElementById(monthId);
+            monthSel.innerHTML = '';
+            MONTH_NAMES.forEach(m => {
+                const opt = document.createElement('option');
+                opt.value = m; opt.textContent = m;
+                monthSel.appendChild(opt);
+            });
+            const yearSel = document.getElementById(yearId);
+            yearSel.innerHTML = '<option value="Any">Any</option>';
+            years.forEach(y => {
+                const opt = document.createElement('option');
+                opt.value = y.toString(); opt.textContent = y.toString();
+                yearSel.appendChild(opt);
+            });
+        }
+
+        function buildDateRangeBounds(fromYear, fromMonth, toYear, toMonth) {
+            let lower = null, upper = null;
+            if (fromYear && fromYear !== 'Any') {
+                const month = (fromMonth && fromMonth !== 'Any') ? MONTH_NAMES.indexOf(fromMonth) : 1;
+                lower = new Date(parseInt(fromYear, 10), month - 1, 1, 0, 0, 0);
+            }
+            if (toYear && toYear !== 'Any') {
+                const month = (toMonth && toMonth !== 'Any') ? MONTH_NAMES.indexOf(toMonth) : 12;
+                const year = parseInt(toYear, 10);
+                const lastDay = new Date(year, month, 0).getDate(); // day 0 of next month = last day of this month
+                upper = new Date(year, month - 1, lastDay, 23, 59, 59);
+            }
+            return { lower, upper };
+        }
+
+        function matchesDateRangeBounds(dateStr, lower, upper) {
+            if (!lower && !upper) return true;
+            const trimmed = (dateStr || '').trim();
+            if (!trimmed) return false;
+            const d = new Date(trimmed);
+            if (isNaN(d.getTime())) return false;
+            if (lower && d < lower) return false;
+            if (upper && d > upper) return false;
+            return true;
         }
 
         function matchesAdvancedSearch(row, searchTerm) {
@@ -377,7 +482,10 @@
                 let term = t.replace(/"/g, '').trim();
                 term.startsWith('-') ? negative.push(term.slice(1)) : positive.push(term);
             });
-            const rowText = ["Title", "Notes", "Item_Type", "Color", "Material"].map(col => (row[col] || '').toString().toLowerCase()).join(' ');
+            // Search every column (matching the desktop app), not just a fixed subset —
+            // this is what lets searching "NoLink" find items whose URL column holds
+            // an auto-generated NoLink-# placeholder instead of a real product link.
+            const rowText = Object.values(row).filter(Boolean).map(v => v.toString().toLowerCase()).join(' ');
             return positive.every(term => rowText.includes(term)) && negative.every(term => !rowText.includes(term));
         }
 
@@ -420,6 +528,32 @@
             return true;
         }
 
+        function matchesDateAdded(row, filterValue) {
+            const addedStr = (row.Date_Added || '').trim();
+            if (filterValue === 'no-date-added') return !addedStr;
+            if (!addedStr) return false;
+            const addedDate = new Date(addedStr);
+            if (isNaN(addedDate.getTime())) return false;
+            const today = new Date(); today.setHours(0,0,0,0);
+            const addedCopy = new Date(addedDate); addedCopy.setHours(0,0,0,0);
+            if (filterValue === 'last-10-days') {
+                const cutoff = new Date(today); cutoff.setDate(cutoff.getDate() - 10);
+                return addedCopy >= cutoff;
+            } else if (filterValue === 'last-30-days') {
+                const cutoff = new Date(today); cutoff.setDate(cutoff.getDate() - 30);
+                return addedCopy >= cutoff;
+            } else if (filterValue === 'last-90-days') {
+                const cutoff = new Date(today); cutoff.setDate(cutoff.getDate() - 90);
+                return addedCopy >= cutoff;
+            } else if (filterValue === 'this-year') {
+                return addedDate.getFullYear() === today.getFullYear();
+            } else {
+                const yearNum = parseInt(filterValue, 10);
+                if (!isNaN(yearNum)) return addedDate.getFullYear() === yearNum;
+            }
+            return true;
+        }
+
         function sortByReleaseDate(data) {
             return [...data].sort((a, b) => {
                 const dateA = new Date(a.Release_Date || '1900-01-01');
@@ -433,6 +567,20 @@
             const category = document.getElementById('category-select').value;
             const quickFilter = document.getElementById('quick-filter-select').value;
             const dateFilter = document.getElementById('date-released-select').value;
+            const dateAddedFilter = document.getElementById('date-added-select').value;
+
+            const { lower: releaseLower, upper: releaseUpper } = buildDateRangeBounds(
+                document.getElementById('release-from-year').value,
+                document.getElementById('release-from-month').value,
+                document.getElementById('release-to-year').value,
+                document.getElementById('release-to-month').value
+            );
+            const { lower: addedLower, upper: addedUpper } = buildDateRangeBounds(
+                document.getElementById('added-from-year').value,
+                document.getElementById('added-from-month').value,
+                document.getElementById('added-to-year').value,
+                document.getElementById('added-to-month').value
+            );
 
             let filteredData = allData.filter(row => {
                 const matchesSearch = matchesAdvancedSearch(row, searchTerm);
@@ -449,7 +597,10 @@
                     }
                 }
                 const matchesDate = !dateFilter || matchesDateReleased(row, dateFilter);
-                return matchesSearch && matchesCategory && matchesQuickFilter && matchesDate;
+                const matchesAdded = !dateAddedFilter || matchesDateAdded(row, dateAddedFilter);
+                const matchesRange = matchesDateRangeBounds(row.Release_Date, releaseLower, releaseUpper);
+                const matchesAddedRange = matchesDateRangeBounds(row.Date_Added, addedLower, addedUpper);
+                return matchesSearch && matchesCategory && matchesQuickFilter && matchesDate && matchesAdded && matchesRange && matchesAddedRange;
             });
 
             filteredData = sortByReleaseDate(filteredData);
@@ -525,6 +676,15 @@
             document.getElementById('category-select').value = '';
             document.getElementById('quick-filter-select').value = '';
             document.getElementById('date-released-select').value = '';
+            document.getElementById('date-added-select').value = '';
+            document.getElementById('release-from-month').value = 'Any';
+            document.getElementById('release-from-year').value = 'Any';
+            document.getElementById('release-to-month').value = 'Any';
+            document.getElementById('release-to-year').value = 'Any';
+            document.getElementById('added-from-month').value = 'Any';
+            document.getElementById('added-from-year').value = 'Any';
+            document.getElementById('added-to-month').value = 'Any';
+            document.getElementById('added-to-year').value = 'Any';
             renderEmptyState();
         }
 
