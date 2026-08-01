@@ -77,8 +77,11 @@
                     <input id="pat-input" type="password" placeholder="ghp_xxxxxxxxxxxxxxxx" class="w-full bg-zinc-800 border border-zinc-700 rounded-2xl px-4 py-3 focus:border-[#81FF3D] focus:outline-none">
                 </div>
                 <p class="text-xs text-zinc-500">
-                    Token needs <strong>repo</strong> scope.<br>
+                    This repo is public — a classic token only needs <strong>public_repo</strong> scope (not full <strong>repo</strong>, which also grants access to your private repos). A fine-grained token scoped to just this repo with read/write access to contents works too, and is even safer.<br>
                     Create one at: <a href="https://github.com/settings/tokens" target="_blank" class="text-[#81FF3D]">github.com/settings/tokens</a>
+                </p>
+                <p class="text-xs text-amber-400">
+                    ⚠️ This token is saved in this browser's local storage, unencrypted. Anyone with access to this browser/device could read it. Only enter a token on a device you trust, and revoke it from GitHub any time you stop using this feature here.
                 </p>
             </div>
             <div class="flex gap-3 mt-8">
@@ -101,7 +104,45 @@
         let githubToken = null;
 
         function escapeJS(str) {
-            return str ? str.toString().replace(/'/g, "\\'") : '';
+            return str ? str.toString().replace(/\\/g, '\\\\').replace(/'/g, "\\'") : '';
+        }
+
+        // Escapes for safe insertion as HTML text or inside an HTML attribute value.
+        function escapeHTML(str) {
+            if (str === null || str === undefined) return '';
+            return str.toString()
+                .replace(/&/g, '&amp;')
+                .replace(/</g, '&lt;')
+                .replace(/>/g, '&gt;')
+                .replace(/"/g, '&quot;')
+                .replace(/'/g, '&#39;');
+        }
+
+        // Safe to embed inside onclick="...('ESCAPED')" — escapes for the JS string
+        // literal first, then HTML-escapes the result so a title/URL containing a
+        // double-quote (or < > &) can't break out of the surrounding HTML attribute.
+        function escapeForAttr(str) {
+            return escapeHTML(escapeJS(str));
+        }
+
+        // Only allow http(s) URLs through to href/src — blocks javascript: URIs
+        // and anything else that could execute when a card is clicked.
+        function safeURL(url) {
+            const trimmed = (url || '').toString().trim();
+            return /^https?:\/\//i.test(trimmed) ? trimmed : '#';
+        }
+
+        // Proper UTF-8 <-> base64 (atob/btoa alone mangle multi-byte characters).
+        function b64ToUtf8(b64) {
+            const binary = atob(b64);
+            const bytes = Uint8Array.from(binary, c => c.charCodeAt(0));
+            return new TextDecoder('utf-8').decode(bytes);
+        }
+        function utf8ToB64(str) {
+            const bytes = new TextEncoder().encode(str);
+            let binary = '';
+            bytes.forEach(b => { binary += String.fromCharCode(b); });
+            return btoa(binary);
         }
 
         function loadGitHubToken() {
@@ -139,36 +180,31 @@
                 });
 
                 let sha = null;
-                let currentContent = "Title,URL,QuickNotes\n";
+                let existingRows = [];
 
                 if (getRes.status === 200) {
                     const data = await getRes.json();
                     sha = data.sha;
-                    currentContent = atob(data.content);
+                    const currentContent = b64ToUtf8(data.content);
+                    // Proper CSV parsing (not a naive split(',')) so a comma inside
+                    // an existing Title/URL/QuickNotes value doesn't corrupt the file.
+                    const parsed = Papa.parse(currentContent.trim(), { header: true, skipEmptyLines: true });
+                    existingRows = parsed.data;
                 }
-
-                const lines = currentContent.trim().split('\n');
-                let newLines = [lines[0] || "Title,URL,QuickNotes"];
 
                 let updated = false;
-                for (let i = 1; i < lines.length; i++) {
-                    const line = lines[i].trim();
-                    if (line) {
-                        const existingTitle = line.split(',')[0].replace(/^"|"$/g, '').trim();
-                        if (existingTitle === trimmedTitle) {
-                            updated = true;
-                            newLines.push(`"${trimmedTitle.replace(/"/g,'""')}","${trimmedUrl.replace(/"/g,'""')}","${trimmedNotes.replace(/"/g,'""')}"`);
-                        } else {
-                            newLines.push(line);
-                        }
+                const newRows = existingRows.map(row => {
+                    if ((row.Title || '').trim() === trimmedTitle) {
+                        updated = true;
+                        return { Title: trimmedTitle, URL: trimmedUrl, QuickNotes: trimmedNotes };
                     }
-                }
-
+                    return row;
+                });
                 if (!updated) {
-                    newLines.push(`"${trimmedTitle.replace(/"/g,'""')}","${trimmedUrl.replace(/"/g,'""')}","${trimmedNotes.replace(/"/g,'""')}"`);
+                    newRows.push({ Title: trimmedTitle, URL: trimmedUrl, QuickNotes: trimmedNotes });
                 }
 
-                const newCSV = newLines.join('\n');
+                const newCSV = Papa.unparse(newRows, { columns: ["Title", "URL", "QuickNotes"] });
 
                 const putRes = await fetch(`https://api.github.com/repos/${REPO_OWNER}/${REPO_NAME}/contents/${FILE_PATH}`, {
                     method: 'PUT',
@@ -178,7 +214,7 @@
                     },
                     body: JSON.stringify({
                         message: `Update notes for: ${trimmedTitle}`,
-                        content: btoa(unescape(encodeURIComponent(newCSV))),
+                        content: utf8ToB64(newCSV),
                         sha: sha
                     })
                 });
@@ -186,6 +222,10 @@
                 if (putRes.ok) {
                     wantedNotes.set(trimmedTitle, trimmedNotes);
                     showToast(`✅ Notes updated for ${trimmedTitle}`);
+                } else if (putRes.status === 409) {
+                    showToast('⚠️ Sync conflict — someone else updated the list at the same moment. Try again.');
+                } else {
+                    showToast(`⚠️ GitHub sync failed (HTTP ${putRes.status})`);
                 }
             } catch (err) {
                 console.error(err);
@@ -429,41 +469,55 @@
             countNumber.textContent = data.length;
             countContainer.classList.remove('hidden');
 
-            data.forEach(row => {
+            const cardsHTML = data.map(row => {
                 const wantedIcon = (row.Wanted === 'wanted-yes') ? '⭐ ' : '';
                 const ownedIcon = (row.Owned === 'owned-yes') ? '✅ ' : '';
                 const isOwned = (row.Owned || '').trim().toLowerCase() === 'owned-yes';
                 const isWanted = (row.Wanted || '').trim().toLowerCase() === 'wanted-yes';
                 const showMarkButton = !isOwned && !isWanted;
 
-                const cardHTML = `
-                    <a href="${row.URL || '#'}" target="_blank" rel="noopener noreferrer" class="card bg-zinc-900 rounded-2xl overflow-hidden border border-zinc-700 hover:border-[#81FF3D]/50 block">
-                        ${row.Image_URL ? `<img src="${row.Image_URL}" loading="lazy" class="thumb-img w-full" alt="${row.Title}">` : ''}
+                // Every value below comes from maindb.csv/gitwanted.csv, which is
+                // editable free text (manual entry tools, or this page's own notes
+                // prompt) — all of it must be escaped before going into innerHTML,
+                // and URLs restricted to http(s) before going into href/src.
+                const safeTitle = escapeHTML(row.Title) || 'No title';
+                const safeType = escapeHTML(row.Item_Type) || '-';
+                const safeBin = escapeHTML(row['Bin#']) || '-';
+                const safeRelease = escapeHTML(row.Release_Date) || '-';
+                const safeNotes = escapeHTML(row.Notes);
+                const safeHref = safeURL(row.URL);
+                const safeImgSrc = row.Image_URL ? escapeHTML(row.Image_URL) : '';
+                const attrTitle = escapeForAttr(row.Title || '');
+                const attrUrl = escapeForAttr(row.URL || '');
+
+                return `
+                    <a href="${safeHref}" target="_blank" rel="noopener noreferrer" class="card bg-zinc-900 rounded-2xl overflow-hidden border border-zinc-700 hover:border-[#81FF3D]/50 block">
+                        ${safeImgSrc ? `<img src="${safeImgSrc}" loading="lazy" class="thumb-img w-full" alt="${safeTitle}">` : ''}
                         <div class="p-4">
-                            <h3 class="font-semibold text-base leading-tight mb-2 line-clamp-2">${wantedIcon}${ownedIcon}${row.Title || 'No title'}</h3>
+                            <h3 class="font-semibold text-base leading-tight mb-2 line-clamp-2">${wantedIcon}${ownedIcon}${safeTitle}</h3>
                             <div class="text-xs text-zinc-400 space-y-1">
-                                <div><span class="text-zinc-500">Type:</span> ${row.Item_Type || '-'}</div>
-                                <div><span class="text-zinc-500">Bin#:</span> ${row['Bin#'] || '-'}</div>
-                                <div><span class="text-zinc-500">Release:</span> ${row.Release_Date || '-'}</div>
+                                <div><span class="text-zinc-500">Type:</span> ${safeType}</div>
+                                <div><span class="text-zinc-500">Bin#:</span> ${safeBin}</div>
+                                <div><span class="text-zinc-500">Release:</span> ${safeRelease}</div>
                             </div>
                             ${(row.Notes || showMarkButton || isOwned || isWanted) ? `
                             <div class="mt-3 flex items-start gap-3">
-                                ${row.Notes ? `<p class="flex-1 text-[10px] text-zinc-500 line-clamp-3">${row.Notes}</p>` : '<div class="flex-1"></div>'}
+                                ${row.Notes ? `<p class="flex-1 text-[10px] text-zinc-500 line-clamp-3">${safeNotes}</p>` : '<div class="flex-1"></div>'}
                                 ${showMarkButton ? `
-                                <button onclick="markAsWanted('${escapeJS(row.Title)}', '${escapeJS(row.URL || '')}'); event.stopPropagation(); return false;" 
+                                <button onclick="markAsWanted('${attrTitle}', '${attrUrl}'); event.stopPropagation(); return false;"
                                         class="flex-shrink-0 inline-flex items-center bg-[#81FF3D] hover:bg-[#9FFF5E] text-zinc-950 text-[10px] font-semibold px-2 py-1 rounded-2xl transition-all active:scale-95 shadow-inner">
                                     ⭐ Want
                                 </button>` : ''}
                                 ${(isOwned || isWanted) ? `
-                                <button onclick="editQuickNotes('${escapeJS(row.Title)}', '${escapeJS(row.URL || '')}'); event.stopPropagation(); return false;" 
+                                <button onclick="editQuickNotes('${attrTitle}', '${attrUrl}'); event.stopPropagation(); return false;"
                                         class="flex-shrink-0 inline-flex items-center bg-white hover:bg-zinc-100 text-zinc-900 border border-zinc-400 text-[10px] font-semibold px-2 py-1 rounded-2xl transition-all active:scale-95 shadow-inner">
                                     📝 Notes
                                 </button>` : ''}
                             </div>` : ''}
                         </div>
                     </a>`;
-                container.innerHTML += cardHTML;
-            });
+            }).join('');
+            container.innerHTML = cardsHTML;
         }
 
         function resetAll() {
