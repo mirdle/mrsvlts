@@ -35,8 +35,8 @@
         </div>
     </div>
 
-    <div class="border-b border-zinc-800 bg-zinc-900 p-4 space-y-4">
-        <div class="grid grid-cols-2 sm:grid-cols-4 gap-3">
+    <div class="border-b border-zinc-800 bg-zinc-900 p-4 space-y-2">
+        <div class="grid grid-cols-2 gap-3">
             <div>
                 <label class="flex items-center gap-1 text-xs text-zinc-400 mb-1"><span class="text-[#81FF3D]">📂</span> Category:</label>
                 <select id="category-select" class="w-full bg-zinc-800 border border-zinc-700 rounded-lg px-3 py-2 focus:border-[#81FF3D] focus:outline-none"></select>
@@ -45,38 +45,24 @@
                 <label class="flex items-center gap-1 text-xs text-zinc-400 mb-1"><span class="text-[#81FF3D]">⚡</span> Quick Filter:</label>
                 <select id="quick-filter-select" class="w-full bg-zinc-800 border border-zinc-700 rounded-lg px-3 py-2 focus:border-[#81FF3D] focus:outline-none"></select>
             </div>
-            <div>
-                <label class="flex items-center gap-1 text-xs text-zinc-400 mb-1"><span class="text-[#81FF3D]">📅</span> Date Released:</label>
-                <select id="date-released-select" class="w-full bg-zinc-800 border border-zinc-700 rounded-lg px-3 py-2 focus:border-[#81FF3D] focus:outline-none"></select>
-            </div>
-            <div>
-                <label class="flex items-center gap-1 text-xs text-zinc-400 mb-1"><span class="text-[#81FF3D]">📅</span> Date Added:</label>
-                <select id="date-added-select" class="w-full bg-zinc-800 border border-zinc-700 rounded-lg px-3 py-2 focus:border-[#81FF3D] focus:outline-none"></select>
-            </div>
         </div>
-        <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
-            <div>
-                <label class="flex items-center gap-1 text-xs text-zinc-400 mb-1"><span class="text-[#81FF3D]">📅</span> Release Date Range:</label>
-                <div class="flex items-center gap-2 flex-wrap">
-                    <span class="text-xs text-zinc-500">From</span>
-                    <select id="release-from-month" class="bg-zinc-800 border border-zinc-700 rounded-lg px-2 py-1.5 text-sm focus:border-[#81FF3D] focus:outline-none"></select>
-                    <select id="release-from-year" class="bg-zinc-800 border border-zinc-700 rounded-lg px-2 py-1.5 text-sm focus:border-[#81FF3D] focus:outline-none"></select>
-                    <span class="text-xs text-zinc-500">To</span>
-                    <select id="release-to-month" class="bg-zinc-800 border border-zinc-700 rounded-lg px-2 py-1.5 text-sm focus:border-[#81FF3D] focus:outline-none"></select>
-                    <select id="release-to-year" class="bg-zinc-800 border border-zinc-700 rounded-lg px-2 py-1.5 text-sm focus:border-[#81FF3D] focus:outline-none"></select>
-                </div>
-            </div>
-            <div>
-                <label class="flex items-center gap-1 text-xs text-zinc-400 mb-1"><span class="text-[#81FF3D]">📅</span> Date Added Range:</label>
-                <div class="flex items-center gap-2 flex-wrap">
-                    <span class="text-xs text-zinc-500">From</span>
-                    <select id="added-from-month" class="bg-zinc-800 border border-zinc-700 rounded-lg px-2 py-1.5 text-sm focus:border-[#81FF3D] focus:outline-none"></select>
-                    <select id="added-from-year" class="bg-zinc-800 border border-zinc-700 rounded-lg px-2 py-1.5 text-sm focus:border-[#81FF3D] focus:outline-none"></select>
-                    <span class="text-xs text-zinc-500">To</span>
-                    <select id="added-to-month" class="bg-zinc-800 border border-zinc-700 rounded-lg px-2 py-1.5 text-sm focus:border-[#81FF3D] focus:outline-none"></select>
-                    <select id="added-to-year" class="bg-zinc-800 border border-zinc-700 rounded-lg px-2 py-1.5 text-sm focus:border-[#81FF3D] focus:outline-none"></select>
-                </div>
-            </div>
+        <div class="flex items-center gap-1.5 flex-wrap text-sm">
+            <span class="flex items-center gap-1 text-xs text-zinc-400 whitespace-nowrap"><span class="text-[#81FF3D]">📅</span> Released:</span>
+            <select id="date-released-select" class="bg-zinc-800 border border-zinc-700 rounded-lg px-2 py-1 text-xs focus:border-[#81FF3D] focus:outline-none"></select>
+            <select id="release-from-month" class="bg-zinc-800 border border-zinc-700 rounded-lg px-1.5 py-1 text-xs focus:border-[#81FF3D] focus:outline-none"></select>
+            <select id="release-from-year" class="bg-zinc-800 border border-zinc-700 rounded-lg px-1.5 py-1 text-xs focus:border-[#81FF3D] focus:outline-none"></select>
+            <span class="text-zinc-600 text-xs">→</span>
+            <select id="release-to-month" class="bg-zinc-800 border border-zinc-700 rounded-lg px-1.5 py-1 text-xs focus:border-[#81FF3D] focus:outline-none"></select>
+            <select id="release-to-year" class="bg-zinc-800 border border-zinc-700 rounded-lg px-1.5 py-1 text-xs focus:border-[#81FF3D] focus:outline-none"></select>
+        </div>
+        <div class="flex items-center gap-1.5 flex-wrap text-sm">
+            <span class="flex items-center gap-1 text-xs text-zinc-400 whitespace-nowrap"><span class="text-[#81FF3D]">📅</span> Added:</span>
+            <select id="date-added-select" class="bg-zinc-800 border border-zinc-700 rounded-lg px-2 py-1 text-xs focus:border-[#81FF3D] focus:outline-none"></select>
+            <select id="added-from-month" class="bg-zinc-800 border border-zinc-700 rounded-lg px-1.5 py-1 text-xs focus:border-[#81FF3D] focus:outline-none"></select>
+            <select id="added-from-year" class="bg-zinc-800 border border-zinc-700 rounded-lg px-1.5 py-1 text-xs focus:border-[#81FF3D] focus:outline-none"></select>
+            <span class="text-zinc-600 text-xs">→</span>
+            <select id="added-to-month" class="bg-zinc-800 border border-zinc-700 rounded-lg px-1.5 py-1 text-xs focus:border-[#81FF3D] focus:outline-none"></select>
+            <select id="added-to-year" class="bg-zinc-800 border border-zinc-700 rounded-lg px-1.5 py-1 text-xs focus:border-[#81FF3D] focus:outline-none"></select>
         </div>
         <div class="flex gap-2">
             <input id="search-input" type="text" placeholder="Search inventory... (use &quot;exact&quot; or -exclude)"
