@@ -385,10 +385,10 @@
 
             const dateSelect = document.getElementById('date-released-select');
             dateSelect.innerHTML = '';
-            ['📅 Any Date', '📅 No Release Date', '📅 Last 10 Days', '📅 Last 30 Days', '📅 Last 90 Days',
-             '📅 This Year', '📅 Before 2024 d23', '📅 After 2024 d23'].forEach((text, i) => {
+            ['📅 Any Date', '📅 Today', '📅 Yesterday', '📅 No Date', '📅 Last 5 Days', '📅 Last 10 Days',
+             '📅 Last 30 Days', '📅 Last 90 Days', '📅 This Year'].forEach((text, i) => {
                 const opt = document.createElement('option');
-                opt.value = ['','no-release-date','last-10-days','last-30-days','last-90-days','this-year','before-2024-d23','after-2024-d23'][i];
+                opt.value = ['','today','yesterday','no-date','last-5-days','last-10-days','last-30-days','last-90-days','this-year'][i];
                 opt.textContent = text;
                 dateSelect.appendChild(opt);
             });
@@ -410,10 +410,10 @@
 
             const addedSelect = document.getElementById('date-added-select');
             addedSelect.innerHTML = '';
-            ['📅 Any Date', '📅 No Date Added', '📅 Last 10 Days', '📅 Last 30 Days', '📅 Last 90 Days', '📅 This Year']
-                .forEach((text, i) => {
+            ['📅 Any Date', '📅 Today', '📅 Yesterday', '📅 No Date', '📅 Last 5 Days', '📅 Last 10 Days',
+             '📅 Last 30 Days', '📅 Last 90 Days', '📅 This Year'].forEach((text, i) => {
                     const opt = document.createElement('option');
-                    opt.value = ['','no-date-added','last-10-days','last-30-days','last-90-days','this-year'][i];
+                    opt.value = ['','today','yesterday','no-date','last-5-days','last-10-days','last-30-days','last-90-days','this-year'][i];
                     opt.textContent = text;
                     addedSelect.appendChild(opt);
                 });
@@ -493,69 +493,46 @@
             return positive.every(term => rowText.includes(term)) && negative.every(term => !rowText.includes(term));
         }
 
-        function matchesDateReleased(row, filterValue) {
-            const releaseStr = (row.Release_Date || '').trim();
-            const dateAddedStr = (row.Date_Added || '').trim();
-            if (filterValue === 'no-release-date') return !releaseStr;
-            if (filterValue === 'before-2024-d23') {
-                const cutoff = new Date('2024-08-01');
-                if (releaseStr) return new Date(releaseStr) < cutoff;
-                if (dateAddedStr) return new Date(dateAddedStr) < cutoff;
-                return false;
-            }
-            if (filterValue === 'after-2024-d23') {
-                const cutoff = new Date('2024-08-01');
-                if (dateAddedStr) return new Date(dateAddedStr) >= cutoff;
-                if (releaseStr) return new Date(releaseStr) >= cutoff;
-                return false;
-            }
-            if (!releaseStr) return false;
-            const releaseDate = new Date(releaseStr);
-            if (isNaN(releaseDate.getTime())) return false;
+        function matchesDatePreset(dateStr, filterValue) {
+            const trimmed = (dateStr || '').trim();
+            if (filterValue === 'no-date') return !trimmed;
+            if (!trimmed) return false;
+            const d = parseDateSafe(trimmed);
+            if (!d) return false;
             const today = new Date(); today.setHours(0,0,0,0);
-            const relCopy = new Date(releaseDate); relCopy.setHours(0,0,0,0);
-            if (filterValue === 'last-10-days') {
+            const dCopy = new Date(d); dCopy.setHours(0,0,0,0);
+            if (filterValue === 'today') {
+                return dCopy.getTime() === today.getTime();
+            } else if (filterValue === 'yesterday') {
+                const yesterday = new Date(today); yesterday.setDate(yesterday.getDate() - 1);
+                return dCopy.getTime() === yesterday.getTime();
+            } else if (filterValue === 'last-5-days') {
+                const cutoff = new Date(today); cutoff.setDate(cutoff.getDate() - 5);
+                return dCopy >= cutoff;
+            } else if (filterValue === 'last-10-days') {
                 const cutoff = new Date(today); cutoff.setDate(cutoff.getDate() - 10);
-                return relCopy >= cutoff;
+                return dCopy >= cutoff;
             } else if (filterValue === 'last-30-days') {
                 const cutoff = new Date(today); cutoff.setDate(cutoff.getDate() - 30);
-                return relCopy >= cutoff;
+                return dCopy >= cutoff;
             } else if (filterValue === 'last-90-days') {
                 const cutoff = new Date(today); cutoff.setDate(cutoff.getDate() - 90);
-                return relCopy >= cutoff;
+                return dCopy >= cutoff;
             } else if (filterValue === 'this-year') {
-                return releaseDate.getFullYear() === today.getFullYear();
+                return d.getFullYear() === today.getFullYear();
             } else {
                 const yearNum = parseInt(filterValue, 10);
-                if (!isNaN(yearNum)) return releaseDate.getFullYear() === yearNum;
+                if (!isNaN(yearNum)) return d.getFullYear() === yearNum;
             }
             return true;
         }
 
+        function matchesDateReleased(row, filterValue) {
+            return matchesDatePreset(row.Release_Date, filterValue);
+        }
+
         function matchesDateAdded(row, filterValue) {
-            const addedStr = (row.Date_Added || '').trim();
-            if (filterValue === 'no-date-added') return !addedStr;
-            if (!addedStr) return false;
-            const addedDate = new Date(addedStr);
-            if (isNaN(addedDate.getTime())) return false;
-            const today = new Date(); today.setHours(0,0,0,0);
-            const addedCopy = new Date(addedDate); addedCopy.setHours(0,0,0,0);
-            if (filterValue === 'last-10-days') {
-                const cutoff = new Date(today); cutoff.setDate(cutoff.getDate() - 10);
-                return addedCopy >= cutoff;
-            } else if (filterValue === 'last-30-days') {
-                const cutoff = new Date(today); cutoff.setDate(cutoff.getDate() - 30);
-                return addedCopy >= cutoff;
-            } else if (filterValue === 'last-90-days') {
-                const cutoff = new Date(today); cutoff.setDate(cutoff.getDate() - 90);
-                return addedCopy >= cutoff;
-            } else if (filterValue === 'this-year') {
-                return addedDate.getFullYear() === today.getFullYear();
-            } else {
-                const yearNum = parseInt(filterValue, 10);
-                if (!isNaN(yearNum)) return addedDate.getFullYear() === yearNum;
-            }
-            return true;
+            return matchesDatePreset(row.Date_Added, filterValue);
         }
 
         function sortByReleaseDate(data) {
