@@ -340,6 +340,20 @@
             renderEmptyState();
         }
 
+        // A bare "YYYY" string (no month/day) is treated by the native Date
+        // parser as ISO 8601 UTC midnight, which getFullYear() then shows in
+        // the browser's local timezone — shifting it back a year for anyone
+        // west of UTC (e.g. "2024" renders as 2023). Route bare-year strings
+        // through the local-time Date constructor instead to avoid that shift.
+        function parseDateSafe(dateStr) {
+            const trimmed = (dateStr || '').trim();
+            if (!trimmed) return null;
+            const bareYear = trimmed.match(/^(\d{4})$/);
+            if (bareYear) return new Date(parseInt(bareYear[1], 10), 0, 1);
+            const d = new Date(trimmed);
+            return isNaN(d.getTime()) ? null : d;
+        }
+
         function populateDropdowns() {
             const catSelect = document.getElementById('category-select');
             catSelect.innerHTML = '<option value="">All Categories</option>';
@@ -380,11 +394,8 @@
             });
             const yearSet = new Set();
             allData.forEach(row => {
-                const relStr = (row.Release_Date || '').trim();
-                if (relStr) {
-                    const d = new Date(relStr);
-                    if (!isNaN(d.getTime())) yearSet.add(d.getFullYear());
-                }
+                const d = parseDateSafe(row.Release_Date);
+                if (d) yearSet.add(d.getFullYear());
             });
             const yearsSorted = Array.from(yearSet).sort((a,b)=>b-a);
             yearsSorted.forEach(year => {
@@ -408,11 +419,8 @@
                 });
             const addedYearSet = new Set();
             allData.forEach(row => {
-                const addedStr = (row.Date_Added || '').trim();
-                if (addedStr) {
-                    const d = new Date(addedStr);
-                    if (!isNaN(d.getTime())) addedYearSet.add(d.getFullYear());
-                }
+                const d = parseDateSafe(row.Date_Added);
+                if (d) addedYearSet.add(d.getFullYear());
             });
             const addedYearsSorted = Array.from(addedYearSet).sort((a,b)=>b-a);
             addedYearsSorted.forEach(year => {
@@ -462,10 +470,8 @@
 
         function matchesDateRangeBounds(dateStr, lower, upper) {
             if (!lower && !upper) return true;
-            const trimmed = (dateStr || '').trim();
-            if (!trimmed) return false;
-            const d = new Date(trimmed);
-            if (isNaN(d.getTime())) return false;
+            const d = parseDateSafe(dateStr);
+            if (!d) return false;
             if (lower && d < lower) return false;
             if (upper && d > upper) return false;
             return true;
