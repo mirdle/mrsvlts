@@ -75,7 +75,7 @@
             </div>
         </div>
         <div class="flex gap-2">
-            <input id="search-input" type="text" placeholder="Search inventory... (use &quot;exact&quot; or -exclude)"
+            <input id="search-input" type="text" placeholder="Search inventory... (use &quot;exact&quot;, -exclude, or ^12 for Bin# 12)"
                    class="flex-1 bg-zinc-800 border border-zinc-700 rounded-lg px-4 py-3 focus:border-[#81FF3D] focus:outline-none text-base">
             <button onclick="performSearch()" class="bg-[#81FF3D] hover:bg-[#9FFF5E] text-black px-6 rounded-lg font-semibold flex items-center gap-2">🔎 Search</button>
         </div>
@@ -124,6 +124,11 @@
 
         let allData = [];
         let wantedTitles = new Set();
+        // Subset of wantedTitles that came only from this browser's localStorage
+        // (an optimistic cache for the gap between tapping "Want" and gitwant.py
+        // folding it into maindb.csv), as opposed to the live gitwanted.csv --
+        // used to know which entries are safe to prune once the CSV disagrees.
+        let localStorageWantedTitles = new Set();
         let wantedNotes = new Map();
         let githubToken = null;
 
@@ -293,8 +298,43 @@
             });
         }
 
+        function reconcileWantedCache() {
+            // localStorageWantedTitles exists only to bridge the gap between
+            // tapping "Want" and gitwant.py folding that tap into maindb.csv's
+            // own Wanted column. Once the freshly-loaded CSV has an explicit
+            // Wanted value for a title that's still only in this local (not the
+            // shared gitwanted.csv) cache, that CSV value is authoritative --
+            // whether the sync finished (now wanted-yes there) or the item was
+            // corrected elsewhere, e.g. via the desktop app (now wanted-no).
+            // Without this, a stale browser-local guess would silently keep
+            // overriding real changes made anywhere else, forever, with no way
+            // for it to ever clear itself.
+            let changed = false;
+            allData.forEach(row => {
+                const title = (row.Title || '').toString().trim();
+                if (!title || !localStorageWantedTitles.has(title)) return;
+                if ((row.Wanted || '').trim()) {
+                    wantedTitles.delete(title);
+                    localStorageWantedTitles.delete(title);
+                    changed = true;
+                }
+            });
+            if (changed) {
+                localStorage.setItem('rsvlts_wanted_titles', JSON.stringify(Array.from(localStorageWantedTitles)));
+            }
+        }
+
         async function loadCSV() {
-            Papa.parse(CSV_URL, {
+            // raw.githubusercontent.com sits behind a CDN, and mobile Safari
+            // (especially as a home-screen PWA) layers its own stubborn HTTP
+            // cache on top of that -- so a plain fetch can silently serve a
+            // maindb.csv snapshot from well before the most recent commit.
+            // reconcileWantedCache() can only act on whatever actually gets
+            // fetched, so a stale copy here means a stale-but-since-corrected
+            // Wanted flag never gets cleared on that device. Cache-bust every
+            // load so each page open always sees the true current file.
+            const cacheBust = `?_=${Date.now()}`;
+            Papa.parse(CSV_URL + cacheBust, {
                 download: true,
                 header: true,
                 skipEmptyLines: true,
@@ -308,10 +348,15 @@
 
                     try {
                         const saved = JSON.parse(localStorage.getItem('rsvlts_wanted_titles') || '[]');
-                        saved.forEach(t => t && wantedTitles.add(t.trim()));
+                        saved.forEach(t => {
+                            if (!t) return;
+                            const trimmedT = t.trim();
+                            wantedTitles.add(trimmedT);
+                            localStorageWantedTitles.add(trimmedT);
+                        });
                     } catch(e) {}
 
-                    Papa.parse(WANTED_CSV_URL, {
+                    Papa.parse(WANTED_CSV_URL + cacheBust, {
                         download: true,
                         header: true,
                         skipEmptyLines: true,
@@ -323,6 +368,9 @@
                                     if (title) {
                                         wantedTitles.add(title);
                                         wantedNotes.set(title, notes);
+                                        // Genuinely pending in the shared queue, not just a
+                                        // local guess -- exempt it from local-cache pruning.
+                                        localStorageWantedTitles.delete(title);
                                     }
                                 });
                             }
@@ -335,6 +383,7 @@
         }
 
         function finalizeLoad() {
+            reconcileWantedCache();
             applyWantedStatus();
             populateDropdowns();
             renderEmptyState();
@@ -481,11 +530,29 @@
             if (!searchTerm) return true;
             searchTerm = searchTerm.toLowerCase().trim();
             const terms = searchTerm.match(/"([^"]+)"|(\S+)/g) || [];
-            const positive = [], negative = [];
+            const positive = [], negative = [], binFilters = [];
             terms.forEach(t => {
                 let term = t.replace(/"/g, '').trim();
-                term.startsWith('-') ? negative.push(term.slice(1)) : positive.push(term);
+                if (term.startsWith('^') && term.length > 1) {
+                    binFilters.push(term.slice(1));
+                } else if (term.startsWith('-')) {
+                    negative.push(term.slice(1));
+                } else {
+                    positive.push(term);
+                }
             });
+            if (binFilters.length) {
+                // Bin# is always stored with extra formatting ("b#^11"), never a
+                // bare number, so normalize both sides down to just the digits --
+                // that's what makes "^12" reliably find bin 12 regardless of how
+                // the value was typed in.
+                const rowBinDigits = (row['Bin#'] || '').toString().replace(/\D/g, '');
+                const matchesBin = binFilters.every(bf => {
+                    const bfDigits = bf.replace(/\D/g, '');
+                    return bfDigits !== '' && rowBinDigits === bfDigits;
+                });
+                if (!matchesBin) return false;
+            }
             // Search every column (matching the desktop app), not just a fixed subset —
             // this is what lets searching "NoLink" find items whose URL column holds
             // an auto-generated NoLink-# placeholder instead of a real product link.
