@@ -19,6 +19,7 @@
     </style>
 </head>
 <body class="bg-zinc-950 text-zinc-100 min-h-screen flex flex-col">
+    <div id="ptr-bar" class="fixed top-0 inset-x-0 h-12 flex items-center justify-center text-sm font-medium bg-zinc-900 green-text border-b border-zinc-800 z-[9998] pointer-events-none" style="transform: translateY(-100%);">↓ Pull to refresh</div>
     <div class="bg-black border-b border-zinc-800 px-4 py-3 flex items-center justify-between">
         <h1 class="text-2xl font-semibold green-text tracking-tight">RSVLTS MainDB Quick Search</h1>
     </div>
@@ -750,6 +751,56 @@
             document.body.appendChild(toast);
             setTimeout(() => toast.remove(), 3200);
         }
+
+        // Pull-down-to-refresh. A home-screen web app has no native one, and
+        // this page otherwise only fetches maindb.csv once, when it's opened --
+        // so a copy left open in the background goes stale. Pulling down from
+        // the top clears every filter and reloads the page, which re-fetches
+        // the CSVs (loadCSV already cache-busts them).
+        (function () {
+            const THRESHOLD = 60;   // in "resisted" px; ~2x that of actual finger travel
+            const bar = document.getElementById('ptr-bar');
+            let startY = null;
+            let pull = 0;
+
+            function modalOpen() {
+                return !document.getElementById('github-modal').classList.contains('hidden');
+            }
+            function hideBar() {
+                bar.style.transition = 'transform 0.2s ease';
+                bar.style.transform = 'translateY(-100%)';
+                startY = null;
+                pull = 0;
+            }
+
+            document.addEventListener('touchstart', e => {
+                const atTop = window.scrollY <= 0;
+                startY = (atTop && !modalOpen() && e.touches.length === 1) ? e.touches[0].clientY : null;
+                pull = 0;
+            }, { passive: true });
+
+            document.addEventListener('touchmove', e => {
+                if (startY === null) return;
+                const dy = e.touches[0].clientY - startY;
+                if (dy <= 0) { hideBar(); return; }   // dragging up: normal scroll, not a pull
+                pull = dy * 0.5;
+                e.preventDefault();                   // suppress the browser's own rubber-band
+                bar.style.transition = 'none';
+                bar.style.transform = `translateY(${Math.min(pull, THRESHOLD * 1.5) - 48}px)`;
+                bar.textContent = pull >= THRESHOLD ? '↻ Release to refresh' : '↓ Pull to refresh';
+            }, { passive: false });
+
+            document.addEventListener('touchend', () => {
+                if (startY !== null && pull >= THRESHOLD) {
+                    bar.textContent = '↻ Refreshing…';
+                    resetAll();
+                    location.reload();
+                } else {
+                    hideBar();
+                }
+            });
+            document.addEventListener('touchcancel', hideBar);
+        })();
 
         document.addEventListener('keydown', e => { if (e.key === 'Enter') performSearch(); });
         window.onload = loadCSV;
