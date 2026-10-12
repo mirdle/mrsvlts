@@ -7,11 +7,29 @@
 <link rel="apple-touch-icon" href="apple-touch-icon.png?v=1">
 <link rel="icon" type="image/png" href="favicon.png?v=1">
 <meta name="apple-mobile-web-app-title" content="SMT">
-<meta http-equiv="refresh" content="0; url=https://www.seemightythings.com/">
-<style>body{margin:0;background:#00766e;color:#fff;font:18px system-ui,-apple-system,sans-serif;display:flex;align-items:center;justify-content:center;height:100vh}a{color:#fff}</style>
+<script>
+// Opened from the home-screen icon (saved URL ends in ?go=1) -> go straight to the site.
+if (/[?&]go=1/.test(location.search) || navigator.standalone) location.replace("https://www.seemightythings.com/");
+</script>
+<style>
+body{margin:0;background:#00766e;color:#fff;font:18px/1.5 system-ui,-apple-system,sans-serif;
+     display:flex;align-items:center;justify-content:center;min-height:100vh;text-align:center;padding:0 20px}
+img{width:120px;height:120px;border-radius:26px;box-shadow:0 6px 24px rgba(0,0,0,.35)}
+a.btn{display:inline-block;margin-top:18px;padding:12px 26px;border-radius:12px;background:#fff;color:#00766e;
+      font-weight:700;text-decoration:none}
+small{display:block;margin-top:22px;opacity:.85;max-width:22em}
+</style>
 </head>
 <body>
-<p>Opening <a href="https://www.seemightythings.com/">SMT</a>&hellip;</p>
-<script>location.replace("https://www.seemightythings.com/");</script>
+<div>
+<img src="apple-touch-icon.png?v=1" alt="">
+<h2>See Mighty Things</h2>
+<a class="btn" href="https://www.seemightythings.com/">Open SMT</a>
+<small>To add this to your Home Screen: tap Share &rarr; Add to Home Screen, turn <b>Open as Web App</b> off, then Add. The icon will open See Mighty Things directly.</small>
+</div>
+<script>
+// Make the URL Safari saves for the home-screen icon the auto-redirecting one.
+if (!/[?&]go=1/.test(location.search)) history.replaceState(null, "", "?go=1");
+</script>
 </body>
 </html>
