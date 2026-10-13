@@ -55,28 +55,60 @@
             <div class="flex items-center gap-1.5">
                 <span class="flex items-center gap-1 text-xs text-zinc-400 whitespace-nowrap w-16"><span class="text-[#81FF3D]">📅</span> Released:</span>
                 <select id="date-released-select" class="flex-1 min-w-0 bg-zinc-800 border border-zinc-700 rounded-lg px-2 py-1 text-xs focus:border-[#81FF3D] focus:outline-none"></select>
+                <button type="button" id="release-range-btn" onclick="openRange('release')" class="range-btn shrink-0 max-w-[45%] truncate bg-zinc-800 border border-zinc-700 rounded-lg px-2.5 py-1 text-xs text-zinc-300">📆 Range</button>
             </div>
-            <div class="flex items-center gap-1 flex-wrap mt-1 pl-1">
-                <span class="text-[10px] uppercase tracking-wide text-zinc-500 mr-0.5">Range</span>
-                <select id="release-from-month" class="bg-zinc-800 border border-zinc-700 rounded-lg px-1.5 py-1 text-xs focus:border-[#81FF3D] focus:outline-none"></select>
-                <select id="release-from-year" class="bg-zinc-800 border border-zinc-700 rounded-lg px-1.5 py-1 text-xs focus:border-[#81FF3D] focus:outline-none"></select>
-                <span class="text-zinc-600 text-xs">→</span>
-                <select id="release-to-month" class="bg-zinc-800 border border-zinc-700 rounded-lg px-1.5 py-1 text-xs focus:border-[#81FF3D] focus:outline-none"></select>
-                <select id="release-to-year" class="bg-zinc-800 border border-zinc-700 rounded-lg px-1.5 py-1 text-xs focus:border-[#81FF3D] focus:outline-none"></select>
+            <div id="release-range-modal" class="hidden fixed inset-0 z-[9000] bg-black/60 flex items-end sm:items-center justify-center" onclick="if (event.target === this) closeRange('release', true)">
+                <div class="bg-zinc-900 border border-zinc-700 rounded-t-2xl sm:rounded-2xl w-full max-w-sm p-4 space-y-3" style="padding-bottom: calc(1rem + env(safe-area-inset-bottom, 0px))">
+                    <div class="text-base font-semibold text-[#81FF3D]">Released between</div>
+                    <div>
+                        <div class="text-xs uppercase tracking-wide text-zinc-500 mb-1">From</div>
+                        <div class="grid grid-cols-2 gap-2">
+                            <select id="release-from-month" class="w-full bg-zinc-800 border border-zinc-700 rounded-lg px-3 py-2.5 text-base focus:border-[#81FF3D] focus:outline-none"></select>
+                            <select id="release-from-year" class="w-full bg-zinc-800 border border-zinc-700 rounded-lg px-3 py-2.5 text-base focus:border-[#81FF3D] focus:outline-none"></select>
+                        </div>
+                    </div>
+                    <div>
+                        <div class="text-xs uppercase tracking-wide text-zinc-500 mb-1">To</div>
+                        <div class="grid grid-cols-2 gap-2">
+                            <select id="release-to-month" class="w-full bg-zinc-800 border border-zinc-700 rounded-lg px-3 py-2.5 text-base focus:border-[#81FF3D] focus:outline-none"></select>
+                            <select id="release-to-year" class="w-full bg-zinc-800 border border-zinc-700 rounded-lg px-3 py-2.5 text-base focus:border-[#81FF3D] focus:outline-none"></select>
+                        </div>
+                    </div>
+                    <div class="grid grid-cols-2 gap-2 pt-1">
+                        <button type="button" onclick="clearRange('release')" class="bg-zinc-800 border border-zinc-700 rounded-lg py-2.5 font-semibold">Clear</button>
+                        <button type="button" onclick="closeRange('release', true)" class="bg-[#81FF3D] text-black rounded-lg py-2.5 font-semibold">Done</button>
+                    </div>
+                </div>
             </div>
         </div>
         <div class="rounded-lg bg-zinc-800/40 px-2.5 py-1.5">
             <div class="flex items-center gap-1.5">
                 <span class="flex items-center gap-1 text-xs text-zinc-400 whitespace-nowrap w-16"><span class="text-[#81FF3D]">📅</span> Added:</span>
                 <select id="date-added-select" class="flex-1 min-w-0 bg-zinc-800 border border-zinc-700 rounded-lg px-2 py-1 text-xs focus:border-[#81FF3D] focus:outline-none"></select>
+                <button type="button" id="added-range-btn" onclick="openRange('added')" class="range-btn shrink-0 max-w-[45%] truncate bg-zinc-800 border border-zinc-700 rounded-lg px-2.5 py-1 text-xs text-zinc-300">📆 Range</button>
             </div>
-            <div class="flex items-center gap-1 flex-wrap mt-1 pl-1">
-                <span class="text-[10px] uppercase tracking-wide text-zinc-500 mr-0.5">Range</span>
-                <select id="added-from-month" class="bg-zinc-800 border border-zinc-700 rounded-lg px-1.5 py-1 text-xs focus:border-[#81FF3D] focus:outline-none"></select>
-                <select id="added-from-year" class="bg-zinc-800 border border-zinc-700 rounded-lg px-1.5 py-1 text-xs focus:border-[#81FF3D] focus:outline-none"></select>
-                <span class="text-zinc-600 text-xs">→</span>
-                <select id="added-to-month" class="bg-zinc-800 border border-zinc-700 rounded-lg px-1.5 py-1 text-xs focus:border-[#81FF3D] focus:outline-none"></select>
-                <select id="added-to-year" class="bg-zinc-800 border border-zinc-700 rounded-lg px-1.5 py-1 text-xs focus:border-[#81FF3D] focus:outline-none"></select>
+            <div id="added-range-modal" class="hidden fixed inset-0 z-[9000] bg-black/60 flex items-end sm:items-center justify-center" onclick="if (event.target === this) closeRange('added', true)">
+                <div class="bg-zinc-900 border border-zinc-700 rounded-t-2xl sm:rounded-2xl w-full max-w-sm p-4 space-y-3" style="padding-bottom: calc(1rem + env(safe-area-inset-bottom, 0px))">
+                    <div class="text-base font-semibold text-[#81FF3D]">Added between</div>
+                    <div>
+                        <div class="text-xs uppercase tracking-wide text-zinc-500 mb-1">From</div>
+                        <div class="grid grid-cols-2 gap-2">
+                            <select id="added-from-month" class="w-full bg-zinc-800 border border-zinc-700 rounded-lg px-3 py-2.5 text-base focus:border-[#81FF3D] focus:outline-none"></select>
+                            <select id="added-from-year" class="w-full bg-zinc-800 border border-zinc-700 rounded-lg px-3 py-2.5 text-base focus:border-[#81FF3D] focus:outline-none"></select>
+                        </div>
+                    </div>
+                    <div>
+                        <div class="text-xs uppercase tracking-wide text-zinc-500 mb-1">To</div>
+                        <div class="grid grid-cols-2 gap-2">
+                            <select id="added-to-month" class="w-full bg-zinc-800 border border-zinc-700 rounded-lg px-3 py-2.5 text-base focus:border-[#81FF3D] focus:outline-none"></select>
+                            <select id="added-to-year" class="w-full bg-zinc-800 border border-zinc-700 rounded-lg px-3 py-2.5 text-base focus:border-[#81FF3D] focus:outline-none"></select>
+                        </div>
+                    </div>
+                    <div class="grid grid-cols-2 gap-2 pt-1">
+                        <button type="button" onclick="clearRange('added')" class="bg-zinc-800 border border-zinc-700 rounded-lg py-2.5 font-semibold">Clear</button>
+                        <button type="button" onclick="closeRange('added', true)" class="bg-[#81FF3D] text-black rounded-lg py-2.5 font-semibold">Done</button>
+                    </div>
+                </div>
             </div>
         </div>
         <div class="flex gap-2">
@@ -495,11 +527,11 @@
                 const opt = document.createElement('option');
                 // Value stays "Any" for the filter logic; only the displayed
                 // text is blank, purely cosmetic (matches the desktop app).
-                opt.value = m; opt.textContent = (m === 'Any') ? '' : m;
+                opt.value = m; opt.textContent = (m === 'Any') ? 'Any month' : m;
                 monthSel.appendChild(opt);
             });
             const yearSel = document.getElementById(yearId);
-            yearSel.innerHTML = '<option value="Any"></option>';
+            yearSel.innerHTML = '<option value="Any">Any year</option>';
             years.forEach(y => {
                 const opt = document.createElement('option');
                 opt.value = y.toString(); opt.textContent = y.toString();
@@ -613,6 +645,43 @@
                 const dateB = new Date(b.Release_Date || '1900-01-01');
                 return dateB - dateA;
             });
+        }
+
+        // Date range picker (2026-10-12): one "Range" button per date section opens a panel with
+        // From and To together; the four selects keep their ids, so the filter code is unchanged.
+        function rangeVal(prefix, part) {
+            return document.getElementById(`${prefix}-${part}`).value;
+        }
+        function rangeLabel(prefix) {
+            const part = (m, y) => (y === 'Any' ? '' : (m !== 'Any' ? `${m.slice(0, 3)} ` : '') + y);
+            const from = part(rangeVal(prefix, 'from-month'), rangeVal(prefix, 'from-year'));
+            const to = part(rangeVal(prefix, 'to-month'), rangeVal(prefix, 'to-year'));
+            if (from && to) return `${from} → ${to}`;
+            if (from) return `From ${from}`;
+            if (to) return `Until ${to}`;
+            return '';
+        }
+        function updateRangeButton(prefix) {
+            const btn = document.getElementById(`${prefix}-range-btn`);
+            const label = rangeLabel(prefix);
+            btn.textContent = label ? `📆 ${label}` : '📆 Range';
+            btn.classList.toggle('border-[#81FF3D]', !!label);
+            btn.classList.toggle('text-[#81FF3D]', !!label);
+            btn.classList.toggle('border-zinc-700', !label);
+        }
+        function openRange(prefix) {
+            document.getElementById(`${prefix}-range-modal`).classList.remove('hidden');
+        }
+        function closeRange(prefix, apply) {
+            document.getElementById(`${prefix}-range-modal`).classList.add('hidden');
+            updateRangeButton(prefix);
+            if (apply) performSearch();
+        }
+        function clearRange(prefix) {
+            ['from-month', 'from-year', 'to-month', 'to-year'].forEach(part => {
+                document.getElementById(`${prefix}-${part}`).value = 'Any';
+            });
+            closeRange(prefix, true);
         }
 
         function performSearch() {
@@ -747,6 +816,8 @@
             document.getElementById('added-from-year').value = 'Any';
             document.getElementById('added-to-month').value = 'Any';
             document.getElementById('added-to-year').value = 'Any';
+            updateRangeButton('release');
+            updateRangeButton('added');
             renderEmptyState();
         }
 
@@ -777,7 +848,8 @@
             let pull = 0;
 
             function modalOpen() {
-                return !document.getElementById('github-modal').classList.contains('hidden');
+                return !document.getElementById('github-modal').classList.contains('hidden') ||
+                    [...document.querySelectorAll('[id$="-range-modal"]')].some(m => !m.classList.contains('hidden'));
             }
             function hideBar() {
                 bar.style.transition = 'transform 0.2s ease';
