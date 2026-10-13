@@ -14,6 +14,21 @@
         @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&display=swap');
         body { font-family: 'Inter', system-ui, sans-serif; }
         .green-text { color: #81FF3D; }
+        /* Date range calendar */
+        .cal-head { display: flex; align-items: center; gap: 6px; margin-bottom: 8px; }
+        .cal-head select { flex: 1; min-width: 0; background: #27272a; border: 1px solid #3f3f46; border-radius: 8px;
+                           padding: 6px 8px; font-size: 16px; color: #f4f4f5; }
+        .cal-nav { width: 40px; height: 36px; border-radius: 8px; background: #27272a; border: 1px solid #3f3f46;
+                   color: #f4f4f5; font-size: 20px; line-height: 1; flex: none; }
+        .cal-grid { display: grid; grid-template-columns: repeat(7, 1fr); gap: 2px 0; text-align: center; }
+        .cal-dow { font-size: 11px; color: #71717a; padding: 2px 0 4px; text-transform: uppercase; letter-spacing: .04em; }
+        .cal-day { height: 40px; font-size: 15px; color: #e4e4e7; background: none; border: 0; font-variant-numeric: tabular-nums; }
+        .cal-day.in { background: rgba(129, 255, 61, .16); color: #d9ffc4; }
+        .cal-day.today { text-decoration: underline; text-underline-offset: 4px; text-decoration-color: #81FF3D; }
+        .cal-day.start, .cal-day.end { background: #81FF3D; color: #000; font-weight: 600; }
+        .cal-day.start { border-radius: 20px 0 0 20px; }
+        .cal-day.end { border-radius: 0 20px 20px 0; }
+        .cal-day.start.end { border-radius: 20px; }
         .card { transition: all 0.2s ease; }
         .card:hover { transform: scale(1.03); box-shadow: 0 10px 15px -3px rgb(129 255 61); }
         .thumb-img { width: 100%; height: 180px; object-fit: cover; border-radius: 12px 12px 0 0; }
@@ -60,20 +75,8 @@
             <div id="release-range-modal" class="hidden fixed inset-0 z-[9000] bg-black/60 flex items-end sm:items-center justify-center" onclick="if (event.target === this) closeRange('release', true)">
                 <div class="bg-zinc-900 border border-zinc-700 rounded-t-2xl sm:rounded-2xl w-full max-w-sm p-4 space-y-3" style="padding-bottom: calc(1rem + env(safe-area-inset-bottom, 0px))">
                     <div class="text-base font-semibold text-[#81FF3D]">Released between</div>
-                    <div>
-                        <div class="text-xs uppercase tracking-wide text-zinc-500 mb-1">From</div>
-                        <div class="grid grid-cols-2 gap-2">
-                            <select id="release-from-month" class="w-full bg-zinc-800 border border-zinc-700 rounded-lg px-3 py-2.5 text-base focus:border-[#81FF3D] focus:outline-none"></select>
-                            <select id="release-from-year" class="w-full bg-zinc-800 border border-zinc-700 rounded-lg px-3 py-2.5 text-base focus:border-[#81FF3D] focus:outline-none"></select>
-                        </div>
-                    </div>
-                    <div>
-                        <div class="text-xs uppercase tracking-wide text-zinc-500 mb-1">To</div>
-                        <div class="grid grid-cols-2 gap-2">
-                            <select id="release-to-month" class="w-full bg-zinc-800 border border-zinc-700 rounded-lg px-3 py-2.5 text-base focus:border-[#81FF3D] focus:outline-none"></select>
-                            <select id="release-to-year" class="w-full bg-zinc-800 border border-zinc-700 rounded-lg px-3 py-2.5 text-base focus:border-[#81FF3D] focus:outline-none"></select>
-                        </div>
-                    </div>
+                    <div id="release-range-summary" class="text-sm text-zinc-300 min-h-[1.25rem]"></div>
+                    <div id="release-cal" class="cal"></div>
                     <div class="grid grid-cols-2 gap-2 pt-1">
                         <button type="button" onclick="clearRange('release')" class="bg-zinc-800 border border-zinc-700 rounded-lg py-2.5 font-semibold">Clear</button>
                         <button type="button" onclick="closeRange('release', true)" class="bg-[#81FF3D] text-black rounded-lg py-2.5 font-semibold">Done</button>
@@ -90,20 +93,8 @@
             <div id="added-range-modal" class="hidden fixed inset-0 z-[9000] bg-black/60 flex items-end sm:items-center justify-center" onclick="if (event.target === this) closeRange('added', true)">
                 <div class="bg-zinc-900 border border-zinc-700 rounded-t-2xl sm:rounded-2xl w-full max-w-sm p-4 space-y-3" style="padding-bottom: calc(1rem + env(safe-area-inset-bottom, 0px))">
                     <div class="text-base font-semibold text-[#81FF3D]">Added between</div>
-                    <div>
-                        <div class="text-xs uppercase tracking-wide text-zinc-500 mb-1">From</div>
-                        <div class="grid grid-cols-2 gap-2">
-                            <select id="added-from-month" class="w-full bg-zinc-800 border border-zinc-700 rounded-lg px-3 py-2.5 text-base focus:border-[#81FF3D] focus:outline-none"></select>
-                            <select id="added-from-year" class="w-full bg-zinc-800 border border-zinc-700 rounded-lg px-3 py-2.5 text-base focus:border-[#81FF3D] focus:outline-none"></select>
-                        </div>
-                    </div>
-                    <div>
-                        <div class="text-xs uppercase tracking-wide text-zinc-500 mb-1">To</div>
-                        <div class="grid grid-cols-2 gap-2">
-                            <select id="added-to-month" class="w-full bg-zinc-800 border border-zinc-700 rounded-lg px-3 py-2.5 text-base focus:border-[#81FF3D] focus:outline-none"></select>
-                            <select id="added-to-year" class="w-full bg-zinc-800 border border-zinc-700 rounded-lg px-3 py-2.5 text-base focus:border-[#81FF3D] focus:outline-none"></select>
-                        </div>
-                    </div>
+                    <div id="added-range-summary" class="text-sm text-zinc-300 min-h-[1.25rem]"></div>
+                    <div id="added-cal" class="cal"></div>
                     <div class="grid grid-cols-2 gap-2 pt-1">
                         <button type="button" onclick="clearRange('added')" class="bg-zinc-800 border border-zinc-700 rounded-lg py-2.5 font-semibold">Clear</button>
                         <button type="button" onclick="closeRange('added', true)" class="bg-[#81FF3D] text-black rounded-lg py-2.5 font-semibold">Done</button>
@@ -491,8 +482,7 @@
                 dateSelect.appendChild(opt);
             });
 
-            populateMonthYearSelect('release-from-month', 'release-from-year', yearsSorted);
-            populateMonthYearSelect('release-to-month', 'release-to-year', yearsSorted);
+            RANGE_YEARS.release = yearsSorted.map(Number);
 
             const addedSelect = document.getElementById('date-added-select');
             addedSelect.innerHTML = '';
@@ -516,8 +506,7 @@
                 addedSelect.appendChild(opt);
             });
 
-            populateMonthYearSelect('added-from-month', 'added-from-year', addedYearsSorted);
-            populateMonthYearSelect('added-to-month', 'added-to-year', addedYearsSorted);
+            RANGE_YEARS.added = addedYearsSorted.map(Number);
         }
 
         function populateMonthYearSelect(monthId, yearId, years) {
@@ -647,19 +636,27 @@
             });
         }
 
-        // Date range picker (2026-10-12): one "Range" button per date section opens a panel with
-        // From and To together; the four selects keep their ids, so the filter code is unchanged.
-        function rangeVal(prefix, part) {
-            return document.getElementById(`${prefix}-${part}`).value;
+        // Date range picker: one "Range" button per date section opens a calendar. Tap a start
+        // day, then an end day (same day twice = just that day; start only = from that day on).
+        var RANGE = { release: { from: null, to: null, view: null }, added: { from: null, to: null, view: null } };
+        var RANGE_YEARS = { release: [], added: [] };
+        const CAL_MONTHS = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+
+        function sameDay(a, b) { return a && b && a.getTime() === b.getTime(); }
+        function fmtDay(d, short) {
+            return short ? `${d.getMonth() + 1}/${d.getDate()}/${String(d.getFullYear()).slice(2)}`
+                         : `${CAL_MONTHS[d.getMonth()]} ${d.getDate()}, ${d.getFullYear()}`;
         }
         function rangeLabel(prefix) {
-            const part = (m, y) => (y === 'Any' ? '' : (m !== 'Any' ? `${m.slice(0, 3)} ` : '') + y);
-            const from = part(rangeVal(prefix, 'from-month'), rangeVal(prefix, 'from-year'));
-            const to = part(rangeVal(prefix, 'to-month'), rangeVal(prefix, 'to-year'));
-            if (from && to) return `${from} → ${to}`;
-            if (from) return `From ${from}`;
-            if (to) return `Until ${to}`;
+            const { from, to } = RANGE[prefix];
+            if (from && to) return sameDay(from, to) ? fmtDay(from, true) : `${fmtDay(from, true)} → ${fmtDay(to, true)}`;
+            if (from) return `From ${fmtDay(from, true)}`;
             return '';
+        }
+        function rangeBounds(prefix) {
+            const { from, to } = RANGE[prefix];
+            return { lower: from ? new Date(from) : null,
+                     upper: to ? new Date(to.getFullYear(), to.getMonth(), to.getDate(), 23, 59, 59) : null };
         }
         function updateRangeButton(prefix) {
             const btn = document.getElementById(`${prefix}-range-btn`);
@@ -669,7 +666,64 @@
             btn.classList.toggle('text-[#81FF3D]', !!label);
             btn.classList.toggle('border-zinc-700', !label);
         }
+        function renderCal(prefix) {
+            const st = RANGE[prefix];
+            const today = new Date(); today.setHours(0, 0, 0, 0);
+            const view = st.view || new Date((st.from || today).getFullYear(), (st.from || today).getMonth(), 1);
+            st.view = view;
+            const y = view.getFullYear(), m = view.getMonth();
+            const years = Array.from(new Set([...RANGE_YEARS[prefix], today.getFullYear(), y])).sort((a, b) => b - a);
+            const lo = Math.min(...years), hi = Math.max(...years);
+            const yearOpts = [];
+            for (let yy = hi; yy >= lo; yy--) yearOpts.push(`<option value="${yy}"${yy === y ? ' selected' : ''}>${yy}</option>`);
+            const monthOpts = CAL_MONTHS.map((n, i) => `<option value="${i}"${i === m ? ' selected' : ''}>${n}</option>`).join('');
+            let cells = ['S','M','T','W','T','F','S'].map(d => `<div class="cal-dow">${d}</div>`).join('');
+            const first = new Date(y, m, 1).getDay();
+            const days = new Date(y, m + 1, 0).getDate();
+            for (let i = 0; i < first; i++) cells += '<div></div>';
+            for (let d = 1; d <= days; d++) {
+                const date = new Date(y, m, d);
+                const cls = ['cal-day'];
+                if (sameDay(date, st.from)) cls.push('start');
+                if (sameDay(date, st.to) || (sameDay(date, st.from) && !st.to)) cls.push('end');
+                if (st.from && st.to && date > st.from && date < st.to) cls.push('in');
+                if (sameDay(date, today)) cls.push('today');
+                cells += `<button type="button" class="${cls.join(' ')}" onclick="pickDay('${prefix}', ${y}, ${m}, ${d})">${d}</button>`;
+            }
+            document.getElementById(`${prefix}-cal`).innerHTML = `
+                <div class="cal-head">
+                    <button type="button" class="cal-nav" onclick="shiftCal('${prefix}', -1)" aria-label="Previous month">‹</button>
+                    <select onchange="jumpCal('${prefix}', this.value, null)" aria-label="Month">${monthOpts}</select>
+                    <select onchange="jumpCal('${prefix}', null, this.value)" aria-label="Year">${yearOpts.join('')}</select>
+                    <button type="button" class="cal-nav" onclick="shiftCal('${prefix}', 1)" aria-label="Next month">›</button>
+                </div>
+                <div class="cal-grid">${cells}</div>`;
+            const sum = document.getElementById(`${prefix}-range-summary`);
+            if (st.from && st.to) sum.textContent = sameDay(st.from, st.to) ? `Only ${fmtDay(st.from)}` : `${fmtDay(st.from)} → ${fmtDay(st.to)}`;
+            else if (st.from) sum.textContent = `From ${fmtDay(st.from)} on - tap an end date (or the same day again)`;
+            else sum.textContent = 'Tap a start date, then an end date';
+        }
+        function pickDay(prefix, y, m, d) {
+            const st = RANGE[prefix];
+            const date = new Date(y, m, d);
+            if (!st.from || st.to) { st.from = date; st.to = null; }
+            else if (date < st.from) { st.to = st.from; st.from = date; }
+            else st.to = date;
+            renderCal(prefix);
+        }
+        function shiftCal(prefix, delta) {
+            const v = RANGE[prefix].view;
+            RANGE[prefix].view = new Date(v.getFullYear(), v.getMonth() + delta, 1);
+            renderCal(prefix);
+        }
+        function jumpCal(prefix, month, year) {
+            const v = RANGE[prefix].view;
+            RANGE[prefix].view = new Date(year !== null ? +year : v.getFullYear(), month !== null ? +month : v.getMonth(), 1);
+            renderCal(prefix);
+        }
         function openRange(prefix) {
+            RANGE[prefix].view = null;
+            renderCal(prefix);
             document.getElementById(`${prefix}-range-modal`).classList.remove('hidden');
         }
         function closeRange(prefix, apply) {
@@ -678,9 +732,7 @@
             if (apply) performSearch();
         }
         function clearRange(prefix) {
-            ['from-month', 'from-year', 'to-month', 'to-year'].forEach(part => {
-                document.getElementById(`${prefix}-${part}`).value = 'Any';
-            });
+            RANGE[prefix].from = RANGE[prefix].to = null;
             closeRange(prefix, true);
         }
 
@@ -691,18 +743,8 @@
             const dateFilter = document.getElementById('date-released-select').value;
             const dateAddedFilter = document.getElementById('date-added-select').value;
 
-            const { lower: releaseLower, upper: releaseUpper } = buildDateRangeBounds(
-                document.getElementById('release-from-year').value,
-                document.getElementById('release-from-month').value,
-                document.getElementById('release-to-year').value,
-                document.getElementById('release-to-month').value
-            );
-            const { lower: addedLower, upper: addedUpper } = buildDateRangeBounds(
-                document.getElementById('added-from-year').value,
-                document.getElementById('added-from-month').value,
-                document.getElementById('added-to-year').value,
-                document.getElementById('added-to-month').value
-            );
+            const { lower: releaseLower, upper: releaseUpper } = rangeBounds('release');
+            const { lower: addedLower, upper: addedUpper } = rangeBounds('added');
 
             let filteredData = allData.filter(row => {
                 const matchesSearch = matchesAdvancedSearch(row, searchTerm);
@@ -808,14 +850,8 @@
             document.getElementById('quick-filter-select').value = '';
             document.getElementById('date-released-select').value = '';
             document.getElementById('date-added-select').value = '';
-            document.getElementById('release-from-month').value = 'Any';
-            document.getElementById('release-from-year').value = 'Any';
-            document.getElementById('release-to-month').value = 'Any';
-            document.getElementById('release-to-year').value = 'Any';
-            document.getElementById('added-from-month').value = 'Any';
-            document.getElementById('added-from-year').value = 'Any';
-            document.getElementById('added-to-month').value = 'Any';
-            document.getElementById('added-to-year').value = 'Any';
+            RANGE.release.from = RANGE.release.to = null;
+            RANGE.added.from = RANGE.added.to = null;
             updateRangeButton('release');
             updateRangeButton('added');
             renderEmptyState();
