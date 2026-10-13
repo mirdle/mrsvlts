@@ -68,9 +68,9 @@
         </div>
         <div class="rounded-lg bg-zinc-800/40 px-2.5 py-1.5">
             <div class="flex items-center gap-1.5">
-                <span class="flex items-center gap-1 text-xs text-zinc-400 whitespace-nowrap w-16"><span class="text-[#81FF3D]">📅</span> Released:</span>
+                <span class="flex items-center gap-1 text-xs text-zinc-400 whitespace-nowrap shrink-0 w-[5rem]"><span class="text-[#81FF3D]">🚀</span> Released:</span>
                 <select id="date-released-select" class="flex-1 min-w-0 bg-zinc-800 border border-zinc-700 rounded-lg px-2 py-1 text-xs focus:border-[#81FF3D] focus:outline-none"></select>
-                <button type="button" id="release-range-btn" onclick="openRange('release')" class="range-btn shrink-0 max-w-[45%] truncate bg-zinc-800 border border-zinc-700 rounded-lg px-2.5 py-1 text-xs text-zinc-300">📆 Range</button>
+                <button type="button" id="release-range-btn" onclick="openRange('release')" class="range-btn shrink-0 max-w-[45%] truncate bg-zinc-800 border border-zinc-700 rounded-lg px-2.5 py-1 text-xs text-zinc-300">🗓️ Range</button>
             </div>
             <div id="release-range-modal" class="hidden fixed inset-0 z-[9000] bg-black/60 flex items-end sm:items-center justify-center" onclick="if (event.target === this) closeRange('release', true)">
                 <div class="bg-zinc-900 border border-zinc-700 rounded-t-2xl sm:rounded-2xl w-full max-w-sm p-4 space-y-3" style="padding-bottom: calc(1rem + env(safe-area-inset-bottom, 0px))">
@@ -86,9 +86,9 @@
         </div>
         <div class="rounded-lg bg-zinc-800/40 px-2.5 py-1.5">
             <div class="flex items-center gap-1.5">
-                <span class="flex items-center gap-1 text-xs text-zinc-400 whitespace-nowrap w-16"><span class="text-[#81FF3D]">📅</span> Added:</span>
+                <span class="flex items-center gap-1 text-xs text-zinc-400 whitespace-nowrap shrink-0 w-[5rem]"><span class="text-[#81FF3D]">📥</span> Added:</span>
                 <select id="date-added-select" class="flex-1 min-w-0 bg-zinc-800 border border-zinc-700 rounded-lg px-2 py-1 text-xs focus:border-[#81FF3D] focus:outline-none"></select>
-                <button type="button" id="added-range-btn" onclick="openRange('added')" class="range-btn shrink-0 max-w-[45%] truncate bg-zinc-800 border border-zinc-700 rounded-lg px-2.5 py-1 text-xs text-zinc-300">📆 Range</button>
+                <button type="button" id="added-range-btn" onclick="openRange('added')" class="range-btn shrink-0 max-w-[45%] truncate bg-zinc-800 border border-zinc-700 rounded-lg px-2.5 py-1 text-xs text-zinc-300">🗓️ Range</button>
             </div>
             <div id="added-range-modal" class="hidden fixed inset-0 z-[9000] bg-black/60 flex items-end sm:items-center justify-center" onclick="if (event.target === this) closeRange('added', true)">
                 <div class="bg-zinc-900 border border-zinc-700 rounded-t-2xl sm:rounded-2xl w-full max-w-sm p-4 space-y-3" style="padding-bottom: calc(1rem + env(safe-area-inset-bottom, 0px))">
@@ -457,13 +457,13 @@
             wantedOpt.value = 'wanted-yes'; wantedOpt.textContent = '⭐ Wanted';
             filterSelect.appendChild(wantedOpt);
             const recentOpt = document.createElement('option');
-            recentOpt.value = 'last-10-days'; recentOpt.textContent = '📅 Last 10 Days';
+            recentOpt.value = 'last-10-days'; recentOpt.textContent = '🔥 Last 10 Days';
             filterSelect.appendChild(recentOpt);
 
             const dateSelect = document.getElementById('date-released-select');
             dateSelect.innerHTML = '';
-            ['📅 Any Date', '📅 Today', '📅 Yesterday', '📅 No Date', '📅 Last 5 Days', '📅 Last 10 Days',
-             '📅 Last 30 Days', '📅 Last 90 Days', '📅 This Year'].forEach((text, i) => {
+            ['🌐 Any Date', '☀️ Today', '🌙 Yesterday', '❔ No Date', '⏱️ Last 5 Days', '🔟 Last 10 Days',
+             '📆 Last 30 Days', '🍂 Last 90 Days', '🎉 This Year'].forEach((text, i) => {
                 const opt = document.createElement('option');
                 opt.value = ['','today','yesterday','no-date','last-5-days','last-10-days','last-30-days','last-90-days','this-year'][i];
                 opt.textContent = text;
@@ -478,7 +478,7 @@
             yearsSorted.forEach(year => {
                 const opt = document.createElement('option');
                 opt.value = year.toString();
-                opt.textContent = `📅 ${year}`;
+                opt.textContent = `🏷️ ${year}`;
                 dateSelect.appendChild(opt);
             });
 
@@ -486,8 +486,8 @@
 
             const addedSelect = document.getElementById('date-added-select');
             addedSelect.innerHTML = '';
-            ['📅 Any Date', '📅 Today', '📅 Yesterday', '📅 No Date', '📅 Last 5 Days', '📅 Last 10 Days',
-             '📅 Last 30 Days', '📅 Last 90 Days', '📅 This Year'].forEach((text, i) => {
+            ['🌐 Any Date', '☀️ Today', '🌙 Yesterday', '❔ No Date', '⏱️ Last 5 Days', '🔟 Last 10 Days',
+             '📆 Last 30 Days', '🍂 Last 90 Days', '🎉 This Year'].forEach((text, i) => {
                     const opt = document.createElement('option');
                     opt.value = ['','today','yesterday','no-date','last-5-days','last-10-days','last-30-days','last-90-days','this-year'][i];
                     opt.textContent = text;
@@ -502,7 +502,7 @@
             addedYearsSorted.forEach(year => {
                 const opt = document.createElement('option');
                 opt.value = year.toString();
-                opt.textContent = `📅 ${year}`;
+                opt.textContent = `📦 ${year}`;
                 addedSelect.appendChild(opt);
             });
 
@@ -661,7 +661,7 @@
         function updateRangeButton(prefix) {
             const btn = document.getElementById(`${prefix}-range-btn`);
             const label = rangeLabel(prefix);
-            btn.textContent = label ? `📆 ${label}` : '📆 Range';
+            btn.textContent = label ? `🗓️ ${label}` : '🗓️ Range';
             btn.classList.toggle('border-[#81FF3D]', !!label);
             btn.classList.toggle('text-[#81FF3D]', !!label);
             btn.classList.toggle('border-zinc-700', !label);
@@ -728,9 +728,21 @@
         }
         function closeRange(prefix, apply) {
             document.getElementById(`${prefix}-range-modal`).classList.add('hidden');
+            if (RANGE[prefix].from) document.getElementById(RANGE_SELECT[prefix]).value = '';
             updateRangeButton(prefix);
             if (apply) performSearch();
         }
+        // A row uses either its date menu or its range, never both: picking a menu option clears the
+        // range, and applying a range sets the menu back to Any Date.
+        const RANGE_SELECT = { release: 'date-released-select', added: 'date-added-select' };
+        Object.entries(RANGE_SELECT).forEach(([prefix, id]) => {
+            document.getElementById(id).addEventListener('change', e => {
+                if (e.target.value && (RANGE[prefix].from || RANGE[prefix].to)) {
+                    RANGE[prefix].from = RANGE[prefix].to = null;
+                    updateRangeButton(prefix);
+                }
+            });
+        });
         function clearRange(prefix) {
             RANGE[prefix].from = RANGE[prefix].to = null;
             closeRange(prefix, true);
