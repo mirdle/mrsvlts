@@ -147,6 +147,39 @@
     <script>
         const CSV_URL = "https://raw.githubusercontent.com/mirdle/mrsvlts/main/maindb.csv";
         const WANTED_CSV_URL = "https://raw.githubusercontent.com/mirdle/mrsvlts/main/gitwanted.csv";
+        // "Also own / Also wanted" (2026-10-14): print_groups.json maps a maindb URL to its print,
+        // written by make_print_groups.py (C:/scripts/rsvlts_match) with each maindb push.
+        const GROUPS_URL = "https://raw.githubusercontent.com/mirdle/mrsvlts/main/print_groups.json";
+        let printKeyByUrl = {};
+        let printRows = {};
+        let lastCards = null;
+
+        async function loadPrintGroups() {
+            try {
+                const r = await fetch(GROUPS_URL + `?_=${Date.now()}`, { cache: 'no-store' });
+                if (!r.ok) return;
+                printKeyByUrl = await r.json();
+                printRows = {};
+                allData.forEach(row => {
+                    const k = printKeyByUrl[(row.URL || '').trim()];
+                    if (k) (printRows[k] = printRows[k] || []).push(row);
+                });
+                if (lastCards && lastCards.length) renderCards(lastCards);
+            } catch (e) { /* the page works without it */ }
+        }
+
+        function alsoLines(row) {
+            const k = printKeyByUrl[(row.URL || '').trim()];
+            if (!k) return '';
+            const others = (printRows[k] || []).filter(r => r !== row);
+            const label = r => `${escapeHTML(r.Title)} (${escapeHTML(r.Item_Type)})`;
+            const own = others.filter(r => (r.Owned || '').trim().toLowerCase() === 'owned-yes');
+            const want = others.filter(r => (r.Owned || '').trim().toLowerCase() !== 'owned-yes'
+                                         && (r.Wanted || '').trim().toLowerCase() === 'wanted-yes');
+            const line = (icon, words, list) => list.length ? `<div class="text-[11px] text-emerald-300/80 leading-snug mt-1">${icon} ${words}: `
+                + list.slice(0, 4).map(label).join(', ') + (list.length > 4 ? ` (+${list.length - 4} more)` : '') + '</div>' : '';
+            return line('✓', 'Also own', own) + line('★', 'Also wanted', want);
+        }
         const REPO_OWNER = "mirdle";
         const REPO_NAME = "mrsvlts";
         const FILE_PATH = "gitwanted.csv";
@@ -372,6 +405,7 @@
 
                     // Update status bar with clean number only
                     document.getElementById('loaded-rows').textContent = allData.length;
+                    loadPrintGroups();
 
                     loadGitHubToken();
 
@@ -785,6 +819,7 @@
         }
 
         function renderCards(data) {
+            lastCards = data;
             const container = document.getElementById('cards-container');
             const countContainer = document.getElementById('results-count');
             const countNumber = document.getElementById('result-count');
@@ -832,6 +867,7 @@
                                 <div><span class="text-zinc-500">Bin#:</span> ${safeBin}</div>
                                 <div><span class="text-zinc-500">Release:</span> ${safeRelease}</div>
                             </div>
+                            ${alsoLines(row)}
                             ${hasBoth ? `
                             <button onclick="window.open('${attrRegistry}', '_blank', 'noopener'); event.preventDefault(); event.stopPropagation(); return false;"
                                     class="mt-2 inline-flex items-center bg-zinc-800 hover:bg-zinc-700 text-zinc-200 border border-zinc-600 text-[10px] font-semibold px-2 py-1 rounded-2xl">
