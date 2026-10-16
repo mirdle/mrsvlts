@@ -107,8 +107,9 @@
         </div>
         <div class="flex gap-2">
             <input id="search-input" type="text" placeholder="Search inventory... (use &quot;exact&quot;, -exclude, or ^12 for Bin# 12)"
-                   class="flex-1 bg-zinc-800 border border-zinc-700 rounded-lg px-4 py-3 focus:border-[#81FF3D] focus:outline-none text-base">
-            <button onclick="performSearch()" class="bg-[#81FF3D] hover:bg-[#9FFF5E] text-black px-6 rounded-lg font-semibold flex items-center gap-2">🔎 Search</button>
+                   class="flex-1 min-w-0 bg-zinc-800 border border-zinc-700 rounded-lg px-4 py-3 focus:border-[#81FF3D] focus:outline-none text-base">
+            <label title="Search by photo" class="shrink-0 bg-zinc-800 border border-zinc-700 rounded-lg px-3 flex items-center text-xl cursor-pointer">📷<input id="photo-input" type="file" accept="image/*" class="hidden"></label>
+            <button onclick="performSearch()" class="bg-[#81FF3D] hover:bg-[#9FFF5E] text-black px-4 rounded-lg font-semibold flex items-center gap-2">🔎<span class="max-[419px]:hidden">Search</span></button>
         </div>
     </div>
 
@@ -118,7 +119,7 @@
                 <span id="result-count" class="text-[#81FF3D] font-semibold text-xl tabular-nums">0</span>
                 <span class="text-zinc-400">results found</span>
             </div>
-            <div class="text-xs text-zinc-500 flex items-center gap-1"><span class="text-emerald-400">↓</span> newest release first</div>
+            <div id="sort-note" class="text-xs text-zinc-500 flex items-center gap-1"><span class="text-emerald-400">↓</span> newest release first</div>
         </div>
         <div id="cards-container" class="grid grid-cols-1 sm:grid-cols-2 gap-4"></div>
     </div>
@@ -814,8 +815,12 @@
             const { lower: releaseLower, upper: releaseUpper } = rangeBounds('release');
             const { lower: addedLower, upper: addedUpper } = rangeBounds('added');
 
+            // Photo search: the words box becomes the matcher's hint, so new words re-run the photo.
+            if (PHOTO && searchTerm.trim() !== PHOTO.hint) { photoSearch(PHOTO.blob); return; }
+
             let filteredData = allData.filter(row => {
-                const matchesSearch = matchesAdvancedSearch(row, searchTerm);
+                if (PHOTO && !PHOTO.rank.has(normUrl(row.URL))) return false;
+                const matchesSearch = PHOTO ? true : matchesAdvancedSearch(row, searchTerm);
                 const matchesCategory = !category || row["Item_Type"] === category;
                 let matchesQuickFilter = true;
                 if (quickFilter) {
@@ -836,9 +841,68 @@
                     && matchesBinSelect(row, binFilter);
             });
 
-            filteredData = sortByReleaseDate(filteredData);
+            filteredData = PHOTO ? filteredData.sort((a, b) => PHOTO.rank.get(normUrl(a.URL)) - PHOTO.rank.get(normUrl(b.URL)))
+                                 : sortByReleaseDate(filteredData);
             renderCards(filteredData);
+            document.getElementById('sort-note').innerHTML = PHOTO
+                ? `<img src="${PHOTO.preview}" class="w-8 h-8 object-cover rounded"> best photo match first <button onclick="clearPhoto()" class="ml-1 text-zinc-300 bg-zinc-800 rounded px-1.5">✕</button>`
+                : '<span class="text-emerald-400">↓</span> newest release first';
         }
+
+        // ---- Photo search (2026-10-15): the photo goes to the RSVLTS Match server on the PC
+        // (reached over Tailscale), which returns the matching maindb rows best-first. The other
+        // filters (category, owned, bin, dates) still narrow those rows.
+        const MATCH_URL = 'https://2024pantheribuy.tailf2af25.ts.net/match';
+        let PHOTO = null;  // {blob, preview, hint, rank: Map(maindb URL -> position)}
+        const normUrl = u => (u || '').trim().replace(/\/+$/, '').toLowerCase();
+
+        async function shrinkPhoto(blob) {
+            const bmp = await createImageBitmap(blob);
+            const scale = Math.min(1, 1600 / Math.max(bmp.width, bmp.height));
+            const c = document.createElement('canvas');
+            c.width = Math.round(bmp.width * scale); c.height = Math.round(bmp.height * scale);
+            c.getContext('2d').drawImage(bmp, 0, 0, c.width, c.height);
+            return await new Promise(r => c.toBlob(r, 'image/jpeg', 0.9));
+        }
+
+        async function photoSearch(blob) {
+            const hint = document.getElementById('search-input').value.trim();
+            const container = document.getElementById('cards-container');
+            document.getElementById('results-count').classList.add('hidden');
+            container.innerHTML = `<div class="col-span-full text-center py-16 text-zinc-400"><div class="text-4xl mb-3">📷</div>Matching photo…</div>`;
+            try {
+                const body = await shrinkPhoto(blob);
+                const r = await fetch(`${MATCH_URL}?k=30&hint=${encodeURIComponent(hint)}`,
+                                      { method: 'POST', body, headers: { 'Content-Type': 'image/jpeg' } });
+                if (!r.ok) throw new Error(await r.text());
+                const { results } = await r.json();
+                const rank = new Map();
+                results.forEach(m => (m.maindb_urls || []).forEach(u => { if (!rank.has(normUrl(u))) rank.set(normUrl(u), rank.size); }));
+                if (PHOTO && PHOTO.preview) URL.revokeObjectURL(PHOTO.preview);
+                PHOTO = { blob, hint, rank, preview: URL.createObjectURL(blob) };
+                performSearch();
+            } catch (e) {
+                container.innerHTML = `<div class="col-span-full text-center py-16 text-zinc-400"><div class="text-4xl mb-3">⚠️</div>
+                    Photo search couldn't reach the match server.<br><span class="text-xs">It runs on the PC: Tailscale needs to be on and the PC awake. (${escapeHTML(e.message)})</span></div>`;
+            }
+        }
+
+        function clearPhoto() {
+            if (PHOTO && PHOTO.preview) URL.revokeObjectURL(PHOTO.preview);
+            PHOTO = null;
+            performSearch();
+        }
+
+        document.getElementById('photo-input').addEventListener('change', e => {
+            const f = e.target.files[0];
+            if (f) photoSearch(f);
+            e.target.value = '';
+        });
+        // Pasting an image anywhere on the page (or long-press > Paste in the search box) runs a photo search.
+        document.addEventListener('paste', e => {
+            const f = [...(e.clipboardData?.files || [])].find(f => f.type.startsWith('image/'));
+            if (f) { e.preventDefault(); photoSearch(f); }
+        });
 
         function renderCards(data) {
             lastCards = data;
@@ -922,6 +986,8 @@
             document.getElementById('date-released-select').value = '';
             document.getElementById('date-added-select').value = '';
             document.getElementById('bin-select').value = '';
+            if (PHOTO && PHOTO.preview) URL.revokeObjectURL(PHOTO.preview);
+            PHOTO = null;
             RANGE.release.from = RANGE.release.to = null;
             RANGE.added.from = RANGE.added.to = null;
             updateRangeButton('release');
