@@ -49,8 +49,10 @@
             MainDB v3.4 <span id="loaded-rows" class="tabular-nums font-semibold">0</span>
         </div>
         <div class="flex gap-1.5 flex-shrink-0">
+            <select id="bin-select" aria-label="Bin" onchange="performSearch()"
+                    class="text-white bg-zinc-700 hover:bg-zinc-600 border-0 px-2 py-1 rounded-lg text-xs font-medium w-[4.75rem] focus:outline-none"></select>
             <button onclick="showGitHubSettings()"
-                    class="text-white bg-zinc-700 hover:bg-zinc-600 px-2.5 py-1 rounded-lg text-xs font-medium flex items-center gap-1 whitespace-nowrap">⚙️ Settings</button>
+                    class="text-white bg-zinc-700 hover:bg-zinc-600 px-2.5 py-1 rounded-lg text-xs font-medium flex items-center gap-1 whitespace-nowrap">⚙️<span class="max-[389px]:hidden"> Settings</span></button>
             <button onclick="resetAll()"
                     class="text-white bg-zinc-700 hover:bg-zinc-600 px-2.5 py-1 rounded-lg text-xs font-medium flex items-center gap-1 whitespace-nowrap"><span class="text-emerald-400">🔄</span> Reset</button>
         </div>
@@ -479,6 +481,12 @@
                 catSelect.appendChild(opt);
             });
 
+            // Bin menu: Bin# is stored as "b#^12", so options are keyed by its digits.
+            const binSelect = document.getElementById('bin-select');
+            const binNums = [...new Set(allData.map(r => binDigits(r)).filter(Boolean))].sort((a, b) => a - b);
+            binSelect.innerHTML = '<option value="">🗃️ Bin</option><option value="none">🚫 No Bin</option><option value="any">📦 In a Bin</option>'
+                + binNums.map(n => `<option value="${n}">Bin ${n}</option>`).join('');
+
             const filterSelect = document.getElementById('quick-filter-select');
             filterSelect.innerHTML = '<option value="">📋 All</option>';
             const filterValues = [...new Set(allData.map(r => r["Owned"]).filter(Boolean))].sort();
@@ -585,6 +593,18 @@
             if (lower && d < lower) return false;
             if (upper && d > upper) return false;
             return true;
+        }
+
+        function binDigits(row) {
+            return (row['Bin#'] || '').toString().replace(/\D/g, '');
+        }
+
+        function matchesBinSelect(row, bin) {
+            if (!bin) return true;
+            const d = binDigits(row);
+            if (bin === 'none') return !d;
+            if (bin === 'any') return !!d;
+            return d === bin;
         }
 
         function matchesAdvancedSearch(row, searchTerm) {
@@ -789,6 +809,7 @@
             const quickFilter = document.getElementById('quick-filter-select').value;
             const dateFilter = document.getElementById('date-released-select').value;
             const dateAddedFilter = document.getElementById('date-added-select').value;
+            const binFilter = document.getElementById('bin-select').value;
 
             const { lower: releaseLower, upper: releaseUpper } = rangeBounds('release');
             const { lower: addedLower, upper: addedUpper } = rangeBounds('added');
@@ -811,7 +832,8 @@
                 const matchesAdded = !dateAddedFilter || matchesDateAdded(row, dateAddedFilter);
                 const matchesRange = matchesDateRangeBounds(row.Release_Date, releaseLower, releaseUpper);
                 const matchesAddedRange = matchesDateRangeBounds(row.Date_Added, addedLower, addedUpper);
-                return matchesSearch && matchesCategory && matchesQuickFilter && matchesDate && matchesAdded && matchesRange && matchesAddedRange;
+                return matchesSearch && matchesCategory && matchesQuickFilter && matchesDate && matchesAdded && matchesRange && matchesAddedRange
+                    && matchesBinSelect(row, binFilter);
             });
 
             filteredData = sortByReleaseDate(filteredData);
@@ -899,6 +921,7 @@
             document.getElementById('quick-filter-select').value = '';
             document.getElementById('date-released-select').value = '';
             document.getElementById('date-added-select').value = '';
+            document.getElementById('bin-select').value = '';
             RANGE.release.from = RANGE.release.to = null;
             RANGE.added.from = RANGE.added.to = null;
             updateRangeButton('release');
