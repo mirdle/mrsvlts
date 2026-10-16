@@ -108,6 +108,7 @@
         <div class="flex gap-2">
             <input id="search-input" type="text" placeholder="Search inventory... (use &quot;exact&quot;, -exclude, or ^12 for Bin# 12)"
                    class="flex-1 min-w-0 bg-zinc-800 border border-zinc-700 rounded-lg px-4 py-3 focus:border-[#81FF3D] focus:outline-none text-base">
+            <button type="button" title="Paste an image from the clipboard" onclick="pastePhoto()" class="shrink-0 bg-zinc-800 border border-zinc-700 rounded-lg px-3 flex items-center text-xl">📋</button>
             <label title="Search by photo" class="shrink-0 bg-zinc-800 border border-zinc-700 rounded-lg px-3 flex items-center text-xl cursor-pointer">📷<input id="photo-input" type="file" accept="image/*" class="hidden"></label>
             <button onclick="performSearch()" class="bg-[#81FF3D] hover:bg-[#9FFF5E] text-black px-4 rounded-lg font-semibold flex items-center gap-2">🔎<span class="max-[419px]:hidden">Search</span></button>
         </div>
@@ -884,6 +885,25 @@
             } catch (e) {
                 container.innerHTML = `<div class="col-span-full text-center py-16 text-zinc-400"><div class="text-4xl mb-3">⚠️</div>
                     Photo search couldn't reach the match server.<br><span class="text-xs">It runs on the PC: Tailscale needs to be on and the PC awake. (${escapeHTML(e.message)})</span></div>`;
+            }
+        }
+
+        // 📋 button: read an image straight off the clipboard (an image copied on the iPhone, or on
+        // the PC via Universal Clipboard). Ctrl+V / long-press > Paste also work (paste listener below).
+        async function pastePhoto() {
+            const container = document.getElementById('cards-container');
+            const say = msg => {
+                document.getElementById('results-count').classList.add('hidden');
+                container.innerHTML = `<div class="col-span-full text-center py-16 text-zinc-400"><div class="text-4xl mb-3">📋</div>${msg}</div>`;
+            };
+            try {
+                for (const item of await navigator.clipboard.read()) {
+                    const type = item.types.find(t => t.startsWith('image/'));
+                    if (type) return photoSearch(await item.getType(type));
+                }
+                say('No image on the clipboard — copy an image first.');
+            } catch (e) {
+                say('Clipboard blocked here — long-press the search box and choose Paste, or press Ctrl+V.');
             }
         }
 
