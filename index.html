@@ -948,7 +948,11 @@
                 }
                 say('No image on the clipboard — copy an image first.');
             } catch (e) {
-                say('Clipboard blocked here — long-press the search box and choose Paste, or press Ctrl+V.');
+                // iPhone: reading the clipboard needs a tap on the small "Paste" bubble iOS shows by the
+                // 📋 button; tapping anywhere else (or no bubble at all) lands here.
+                say(/iPhone|iPad/.test(navigator.userAgent)
+                    ? 'The phone didn\'t hand over the clipboard. Tap 📋 again and then tap the small <b>Paste</b> bubble that pops up next to it — or long-press the search box and choose <b>Paste</b>.'
+                    : 'The browser blocked reading the clipboard. Press Ctrl+V on the page instead.');
             }
         }
 
