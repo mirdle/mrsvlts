@@ -150,6 +150,45 @@
 
     <script>
         const CSV_URL = "https://raw.githubusercontent.com/mirdle/mrsvlts/main/maindb.csv";
+        // Trade bait (2026-10-16): copies you'd trade or sell - duplicates, wrong sizes, resale buys.
+        // One line per copy in tradebait.csv, keyed by the maindb row's URL. Bin 9999 = trade bait bin.
+        const TRADE_URL = "https://raw.githubusercontent.com/mirdl/mrsvlts/main/tradebait.csv";
+        const TRADE_BIN = '9999';
+        let TRADE = new Map();  // normalized maindb URL -> [open trade lines]
+
+        function loadTradeBait() {
+            Papa.parse(TRADE_URL + `?_=${Date.now()}`, {
+                download: true, header: true, skipEmptyLines: true,
+                complete: res => {
+                    TRADE = new Map();
+                    res.data.filter(t => ['available', 'pending', ''].includes((t.Status || '').trim().toLowerCase()))
+                        .forEach(t => {
+                            const k = (t.URL || '').trim().replace(/\/+$/, '').toLowerCase();
+                            if (k) TRADE.set(k, [...(TRADE.get(k) || []), t]);
+                        });
+                },
+                error: () => {}
+            });
+        }
+
+        function tradeLines(row) {
+            return TRADE.get((row.URL || '').trim().replace(/\/+$/, '').toLowerCase()) || [];
+        }
+
+        function isTradeBait(row) {
+            return tradeLines(row).length > 0 || (row['Bin#'] || '').toString().replace(/\D/g, '') === TRADE_BIN;
+        }
+
+        function tradeHTML(row) {
+            return tradeLines(row).map(t => {
+                const bits = [
+                    [t.Size, (t.Qty && t.Qty !== '1') ? '×' + t.Qty : ''].filter(Boolean).join(' '),
+                    t.Why, t.Condition, t.Bin ? 'Bin ' + t.Bin : '', t.Location, t.Asking,
+                    (t.Status || '').toLowerCase() === 'pending' ? 'PENDING' : ''
+                ].filter(Boolean).map(escapeHTML).join(' · ');
+                return `<div class="text-[11px] text-amber-300 font-medium">🔁 Trade bait${bits ? ': ' + bits : ''}</div>`;
+            }).join('');
+        }
         const WANTED_CSV_URL = "https://raw.githubusercontent.com/mirdle/mrsvlts/main/gitwanted.csv";
         // "Also own / Also wanted" (2026-10-14): print_groups.json maps a maindb URL to its print,
         // written by make_print_groups.py (C:/scripts/rsvlts_match) with each maindb push.
@@ -410,6 +449,7 @@
                     // Update status bar with clean number only
                     document.getElementById('loaded-rows').textContent = allData.length;
                     loadPrintGroups();
+                    loadTradeBait();
 
                     loadGitHubToken();
 
@@ -504,6 +544,9 @@
             const recentOpt = document.createElement('option');
             recentOpt.value = 'last-10-days'; recentOpt.textContent = '🔥 Last 10 Days';
             filterSelect.appendChild(recentOpt);
+            const tradeOpt = document.createElement('option');
+            tradeOpt.value = 'trade-bait'; tradeOpt.textContent = '🔁 Trade bait';
+            filterSelect.appendChild(tradeOpt);
 
             const dateSelect = document.getElementById('date-released-select');
             dateSelect.innerHTML = '';
@@ -827,6 +870,8 @@
                 if (quickFilter) {
                     if (quickFilter === 'wanted-yes') {
                         matchesQuickFilter = (row.Wanted || '').trim() === 'wanted-yes';
+                    } else if (quickFilter === 'trade-bait') {
+                        matchesQuickFilter = isTradeBait(row);
                     } else if (quickFilter === 'last-10-days') {
                         const tenDaysAgo = new Date(); tenDaysAgo.setDate(tenDaysAgo.getDate() - 10); tenDaysAgo.setHours(0,0,0,0);
                         matchesQuickFilter = (row.Release_Date || '') && new Date(row.Release_Date) >= tenDaysAgo;
@@ -971,6 +1016,7 @@
                             <div class="text-xs text-zinc-400 space-y-1">
                                 <div><span class="text-zinc-500">Type:</span> ${safeType}</div>
                                 <div><span class="text-zinc-500">Bin#:</span> ${safeBin}</div>
+                                ${tradeHTML(row)}
                                 <div><span class="text-zinc-500">Release:</span> ${safeRelease}</div>
                             </div>
                             ${alsoLines(row)}
