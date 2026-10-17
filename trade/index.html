@@ -1,0 +1,125 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>RSVLTS Trade List</title>
+<meta name="description" content="RSVLTS shirts available for trade or sale">
+<link rel="icon" type="image/png" href="../favicon.png?v=2">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@600;700&family=Barlow:wght@400;500;600&display=swap">
+<style>
+/* Trade list for the RSVLTS BST group: one card per shirt up for trade or sale.
+   Data: items.json, built from tradebait.csv by make_trade_list.py (no bins, locations or notes). */
+:root {
+  --bg: #f4f6f1; --surface: #ffffff; --fg: #141a12; --muted: #5d6858; --line: #dde3d7;
+  --chip: #edf1e8; --accent: #3f8f12; --accent-ink: #ffffff; --price: #1f5d00;
+  --pending: #b45f06; --photo: #ffffff;
+  --display: "Barlow Condensed", "Arial Narrow", "Roboto Condensed", sans-serif;
+  --body: "Barlow", "Segoe UI", system-ui, sans-serif;
+  color-scheme: light;
+}
+@media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) {
+  --bg: #0e110d; --surface: #171c15; --fg: #e8eee3; --muted: #9aa893; --line: #283023;
+  --chip: #222a1e; --accent: #81ff3d; --accent-ink: #0e110d; --price: #9cff66;
+  --pending: #f0a050; --photo: #ffffff; color-scheme: dark;
+} }
+:root[data-theme="dark"] {
+  --bg: #0e110d; --surface: #171c15; --fg: #e8eee3; --muted: #9aa893; --line: #283023;
+  --chip: #222a1e; --accent: #81ff3d; --accent-ink: #0e110d; --price: #9cff66;
+  --pending: #f0a050; --photo: #ffffff; color-scheme: dark;
+}
+* { box-sizing: border-box; }
+body { margin: 0; background: var(--bg); color: var(--fg); font: 16px/1.45 var(--body);
+  padding: env(safe-area-inset-top, 0px) 16px env(safe-area-inset-bottom, 0px); }
+.wrap { max-width: 1080px; margin: 0 auto; padding-block: 28px 48px; display: grid; gap: 22px; }
+header { display: grid; gap: 6px; }
+.kicker { font: 700 13px/1 var(--display); letter-spacing: .14em; text-transform: uppercase; color: var(--accent); }
+h1 { font: 700 clamp(34px, 7vw, 52px)/1 var(--display); margin: 0; text-wrap: balance; }
+.sub { color: var(--muted); max-width: 62ch; margin: 0; }
+.bar { display: flex; flex-wrap: wrap; align-items: center; gap: 10px; color: var(--muted); font-size: 14px; }
+.bar .count { font-variant-numeric: tabular-nums; }
+button.share { margin-left: auto; border: 0; border-radius: 999px; padding: 9px 16px; cursor: pointer;
+  background: var(--accent); color: var(--accent-ink); font: 600 14px var(--body); }
+.grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(230px, 1fr)); gap: 16px; }
+.card { background: var(--surface); border: 1px solid var(--line); border-radius: 14px; overflow: hidden;
+  display: flex; flex-direction: column; min-width: 0; }
+.photo { position: relative; aspect-ratio: 1; background: var(--photo); max-width: 100%; }
+.photo img { width: 100%; height: 100%; object-fit: contain; display: block; }
+.pending { position: absolute; top: 10px; left: 10px; background: var(--pending); color: #fff;
+  font: 700 12px/1 var(--display); letter-spacing: .08em; text-transform: uppercase; padding: 6px 8px; border-radius: 6px; }
+.body { padding: 12px 14px 14px; display: grid; gap: 8px; flex: 1; align-content: start; }
+.name { font: 700 20px/1.1 var(--display); margin: 0; text-wrap: balance; }
+.meta { color: var(--muted); font-size: 13px; }
+.chips { display: flex; flex-wrap: wrap; gap: 6px; }
+.chip { background: var(--chip); border-radius: 999px; padding: 3px 10px; font-size: 13px; }
+.chip b { font-weight: 600; }
+.price { font: 700 22px/1 var(--display); color: var(--price); font-variant-numeric: tabular-nums; }
+.price.offer { font-size: 17px; }
+.wants { font-size: 14px; }
+.wants span { color: var(--muted); }
+.details { margin-top: auto; font-size: 14px; color: var(--accent); text-decoration: none; font-weight: 600; }
+.details:hover { text-decoration: underline; }
+.empty, .note { color: var(--muted); }
+.note { font-size: 13px; border-top: 1px solid var(--line); padding-top: 14px; }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <div class="kicker">RSVLTS · Buy / Sell / Trade</div>
+    <h1>Trade &amp; Sale List</h1>
+    <p class="sub">Shirts I'm ready to trade or sell. Message me in the RSVLTS BST group with what you'd like and what you have.</p>
+  </header>
+  <div class="bar"><span class="count" id="count">Loading…</span><span id="updated"></span>
+    <button class="share" id="share" type="button">Share list</button></div>
+  <div class="grid" id="grid"></div>
+  <p class="note">Sizes and condition as listed; ask if something's blank. "Details" opens the shirt's catalog page.</p>
+</div>
+<script>
+const $ = id => document.getElementById(id);
+const esc = s => String(s ?? "").replace(/[&<>"']/g, c => ({"&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;"}[c]));
+const safeUrl = u => /^https?:\/\//i.test(u || "") ? u : "";
+const CONDITION = { NWT: "New with tags", NWOT: "New, no tags", EUC: "Excellent used", GUC: "Good used" };
+
+function card(it) {
+  const img = safeUrl(it.image), link = safeUrl(it.link);
+  const chips = [
+    `<span class="chip">Size <b>${esc(it.size || "ask")}</b></span>`,
+    it.condition ? `<span class="chip" title="${esc(CONDITION[it.condition.toUpperCase()] || it.condition)}">${esc(it.condition)}</span>` : "",
+    it.qty && it.qty !== "1" ? `<span class="chip">×${esc(it.qty)}</span>` : "",
+  ].join("");
+  const price = it.asking
+    ? `<div class="price">${esc(/^\d/.test(it.asking) ? "$" + it.asking : it.asking)}</div>`
+    : `<div class="price offer">Make an offer · open to trades</div>`;
+  return `<article class="card">
+    <div class="photo">${img ? `<img src="${esc(img)}" alt="${esc(it.title)}" loading="lazy">` : ""}${it.pending ? `<span class="pending">Pending</span>` : ""}</div>
+    <div class="body">
+      <h2 class="name">${esc(it.title)}</h2>
+      <div class="meta">${esc([it.type, it.released && "released " + it.released].filter(Boolean).join(" · "))}</div>
+      <div class="chips">${chips}</div>
+      ${price}
+      ${it.wants ? `<div class="wants"><span>Looking for:</span> ${esc(it.wants)}</div>` : ""}
+      ${link ? `<a class="details" href="${esc(link)}" target="_blank" rel="noopener">Details ↗</a>` : ""}
+    </div></article>`;
+}
+
+fetch(`items.json?_=${Date.now()}`, { cache: "no-store" }).then(r => r.json()).then(d => {
+  const items = d.items || [];
+  $("count").textContent = `${items.length} shirt${items.length === 1 ? "" : "s"} available`;
+  if (d.updated) $("updated").textContent = "· updated " + new Date(d.updated + "T12:00").toLocaleDateString(undefined, { month: "short", day: "numeric", year: "numeric" });
+  $("grid").innerHTML = items.length ? items.map(card).join("") : `<p class="empty">Nothing up for trade right now — check back soon.</p>`;
+}).catch(() => { $("count").textContent = "Couldn't load the list — refresh to try again."; });
+
+$("share").onclick = async () => {
+  const url = location.href.split("#")[0];
+  try {
+    if (navigator.share) { await navigator.share({ title: "RSVLTS Trade List", url }); return; }
+    await navigator.clipboard.writeText(url);
+    $("share").textContent = "Link copied";
+  } catch (e) { if (e.name !== "AbortError") $("share").textContent = url; }
+};
+</script>
+</body>
+</html>
