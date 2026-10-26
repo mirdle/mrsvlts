@@ -550,10 +550,10 @@
 
             const dateSelect = document.getElementById('date-released-select');
             dateSelect.innerHTML = '';
-            ['🌐 Any Date', '☀️ Today', '🌙 Yesterday', '❔ No Date', '⏱️ Last 5 Days', '🔟 Last 10 Days',
+            ['🌐 Any Date', '☀️ Today', '🌙 Yesterday', '❔ No Date', '3️⃣ Last 3 Days', '⏱️ Last 5 Days', '🔟 Last 10 Days',
              '📆 Last 30 Days', '🍂 Last 90 Days', '🎉 This Year'].forEach((text, i) => {
                 const opt = document.createElement('option');
-                opt.value = ['','today','yesterday','no-date','last-5-days','last-10-days','last-30-days','last-90-days','this-year'][i];
+                opt.value = ['','today','yesterday','no-date','last-3-days','last-5-days','last-10-days','last-30-days','last-90-days','this-year'][i];
                 opt.textContent = text;
                 dateSelect.appendChild(opt);
             });
@@ -574,10 +574,10 @@
 
             const addedSelect = document.getElementById('date-added-select');
             addedSelect.innerHTML = '';
-            ['🌐 Any Date', '☀️ Today', '🌙 Yesterday', '❔ No Date', '⏱️ Last 5 Days', '🔟 Last 10 Days',
+            ['🌐 Any Date', '☀️ Today', '🌙 Yesterday', '❔ No Date', '3️⃣ Last 3 Days', '⏱️ Last 5 Days', '🔟 Last 10 Days',
              '📆 Last 30 Days', '🍂 Last 90 Days', '🎉 This Year'].forEach((text, i) => {
                     const opt = document.createElement('option');
-                    opt.value = ['','today','yesterday','no-date','last-5-days','last-10-days','last-30-days','last-90-days','this-year'][i];
+                    opt.value = ['','today','yesterday','no-date','last-3-days','last-5-days','last-10-days','last-30-days','last-90-days','this-year'][i];
                     opt.textContent = text;
                     addedSelect.appendChild(opt);
                 });
@@ -699,6 +699,9 @@
             } else if (filterValue === 'yesterday') {
                 const yesterday = new Date(today); yesterday.setDate(yesterday.getDate() - 1);
                 return dCopy.getTime() === yesterday.getTime();
+            } else if (filterValue === 'last-3-days') {
+                const cutoff = new Date(today); cutoff.setDate(cutoff.getDate() - 3);
+                return dCopy >= cutoff;
             } else if (filterValue === 'last-5-days') {
                 const cutoff = new Date(today); cutoff.setDate(cutoff.getDate() - 5);
                 return dCopy >= cutoff;
