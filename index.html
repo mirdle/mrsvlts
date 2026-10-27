@@ -152,7 +152,7 @@
         const CSV_URL = "https://raw.githubusercontent.com/mirdle/mrsvlts/main/maindb.csv";
         // Trade bait (2026-10-16): copies you'd trade or sell - duplicates, wrong sizes, resale buys.
         // One line per copy in tradebait.csv, keyed by the maindb row's URL. Bin 9999 = trade bait bin.
-        const TRADE_URL = "https://raw.githubusercontent.com/mirdl/mrsvlts/main/tradebait.csv";
+        const TRADE_URL = "https://raw.githubusercontent.com/mirdle/mrsvlts/main/tradebait.csv";
         const TRADE_BIN = '9999';
         let TRADE = new Map();  // normalized maindb URL -> [open trade lines]
 
@@ -304,8 +304,43 @@
             document.getElementById('github-modal').classList.add('hidden');
         }
 
-        async function syncToGitHub(title, url = '', quickNotes = '') {
-            if (!githubToken) return;
+        // Want taps / note edits that didn't reach GitHub (no token, offline, conflict): kept on this
+        // device and retried on every page load until they save (2026-10-26 -- a tap used to look
+        // saved, then vanish on the next load because it never left the phone).
+        const PENDING_KEY = 'rsvlts_pending_wants';
+        function getPending() {
+            try { return JSON.parse(localStorage.getItem(PENDING_KEY) || '[]'); } catch (e) { return []; }
+        }
+        function setPending(list) {
+            try { localStorage.setItem(PENDING_KEY, JSON.stringify(list)); } catch (e) {}
+        }
+        function addPending(title, url, notes) {
+            setPending(getPending().filter(p => p.title !== title).concat([{ title, url, notes }]));
+        }
+        function removePending(title) {
+            setPending(getPending().filter(p => p.title !== title));
+        }
+        async function retryPending() {
+            const pending = getPending();
+            if (!pending.length) return;
+            if (!githubToken) {
+                showToast(`⚠️ ${pending.length} Want/note change(s) not saved yet -- tap ⚙️ and add your GitHub token`);
+                return;
+            }
+            for (const p of pending) {
+                if (await syncToGitHub(p.title, p.url, p.notes, true)) removePending(p.title);
+            }
+            const left = getPending().length;
+            showToast(left ? `⚠️ ${left} Want/note change(s) still not saved -- will retry` :
+                             `✅ Saved ${pending.length} earlier Want/note change(s)`);
+        }
+
+        // Returns true once GitHub has the change; false (with a warning toast) otherwise.
+        async function syncToGitHub(title, url = '', quickNotes = '', quiet = false) {
+            if (!githubToken) {
+                if (!quiet) showToast('⚠️ NOT saved -- no GitHub token on this device. Tap ⚙️ to add it; this change will retry.');
+                return false;
+            }
             const trimmedTitle = title.trim();
             const trimmedUrl = (url || '').trim();
             const trimmedNotes = (quickNotes || '').trim();
@@ -357,16 +392,18 @@
 
                 if (putRes.ok) {
                     wantedNotes.set(trimmedTitle, trimmedNotes);
-                    showToast(`✅ Notes updated for ${trimmedTitle}`);
+                    if (!quiet) showToast(`✅ Saved: ${trimmedTitle} (reaches maindb within 30 min)`);
+                    return true;
                 } else if (putRes.status === 409) {
-                    showToast('⚠️ Sync conflict — someone else updated the list at the same moment. Try again.');
+                    if (!quiet) showToast('⚠️ NOT saved -- the list changed at the same moment. It will retry on the next page load.');
                 } else {
-                    showToast(`⚠️ GitHub sync failed (HTTP ${putRes.status})`);
+                    if (!quiet) showToast(`⚠️ NOT saved -- GitHub said HTTP ${putRes.status}${putRes.status === 401 ? ' (token expired? tap ⚙️)' : ''}. It will retry.`);
                 }
             } catch (err) {
                 console.error(err);
-                showToast('⚠️ Could not sync to GitHub (check token)');
+                if (!quiet) showToast('⚠️ NOT saved -- could not reach GitHub. It will retry on the next page load.');
             }
+            return false;
         }
 
         function markAsWanted(title, url = '') {
@@ -380,8 +417,8 @@
             localStorage.setItem('rsvlts_wanted_titles', JSON.stringify(Array.from(wantedTitles)));
             applyWantedStatus();
             performSearch();
-            syncToGitHub(trimmed, url, quickNotes);
-            showToast(`⭐ ${trimmed} marked as wanted!`);
+            addPending(trimmed, url, quickNotes);  // until GitHub confirms
+            syncToGitHub(trimmed, url, quickNotes).then(ok => { if (ok) removePending(trimmed); });
         }
 
         function editQuickNotes(title, url = '') {
@@ -391,7 +428,8 @@
             const currentNotes = wantedNotes.get(trimmed) || '';
             const newNotes = window.prompt(`Edit QuickNotes for "${trimmed}"\n\nCurrent notes (you can edit or add to them):`, currentNotes) || '';
 
-            syncToGitHub(trimmed, url, newNotes);
+            addPending(trimmed, url, newNotes);
+            syncToGitHub(trimmed, url, newNotes).then(ok => { if (ok) removePending(trimmed); });
         }
 
         function applyWantedStatus() {
@@ -418,6 +456,7 @@
             allData.forEach(row => {
                 const title = (row.Title || '').toString().trim();
                 if (!title || !localStorageWantedTitles.has(title)) return;
+                if (getPending().some(p => p.title === title)) return;  // not saved yet: keep it
                 if ((row.Wanted || '').trim()) {
                     wantedTitles.delete(title);
                     localStorageWantedTitles.delete(title);
@@ -490,10 +529,12 @@
         }
 
         function finalizeLoad() {
+            getPending().forEach(p => { wantedTitles.add(p.title); localStorageWantedTitles.add(p.title); });
             reconcileWantedCache();
             applyWantedStatus();
             populateDropdowns();
             renderEmptyState();
+            retryPending();
         }
 
         // A bare "YYYY" string (no month/day) is treated by the native Date
@@ -1079,8 +1120,10 @@
             const toast = document.createElement('div');
             toast.className = 'toast fixed bottom-6 left-6 bg-[#81FF3D] text-black px-5 py-3 rounded-3xl font-semibold shadow-2xl flex items-center gap-2 z-[9999]';
             toast.innerHTML = message;
+            const warn = message.startsWith('⚠️');  // failures stay up longer, in red
+            if (warn) { toast.style.background = '#ff5a5a'; toast.style.color = '#fff'; }
             document.body.appendChild(toast);
-            setTimeout(() => toast.remove(), 3200);
+            setTimeout(() => toast.remove(), warn ? 9000 : 3200);
         }
 
         // Pull-to-refresh, both ends. A home-screen web app has no native one, and this page
