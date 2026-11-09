@@ -81,10 +81,11 @@ button.share { margin-left: auto; border: 0; border-radius: 999px; padding: 9px 
 const $ = id => document.getElementById(id);
 const esc = s => String(s ?? "").replace(/[&<>"']/g, c => ({"&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;"}[c]));
 const safeUrl = u => /^https?:\/\//i.test(u || "") ? u : "";
+const safeImg = u => /^img\/[\w.-]+$/.test(u || "") ? u : safeUrl(u);
 const CONDITION = { NWT: "New with tags", NWOT: "New, no tags", EUC: "Excellent used", GUC: "Good used" };
 
 function card(it) {
-  const img = safeUrl(it.image), link = safeUrl(it.link);
+  const img = safeImg(it.image), link = safeUrl(it.link);
   const chips = [
     `<span class="chip">Size <b>${esc(it.size || "ask")}</b></span>`,
     it.condition ? `<span class="chip" title="${esc(CONDITION[it.condition.toUpperCase()] || it.condition)}">${esc(it.condition)}</span>` : "",
