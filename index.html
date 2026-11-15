@@ -219,9 +219,10 @@
             const own = others.filter(r => (r.Owned || '').trim().toLowerCase() === 'owned-yes');
             const want = others.filter(r => (r.Owned || '').trim().toLowerCase() !== 'owned-yes'
                                          && (r.Wanted || '').trim().toLowerCase() === 'wanted-yes');
-            const line = (icon, words, list) => list.length ? `<div class="text-[11px] text-emerald-300/80 leading-snug mt-1">${icon} ${words}: `
+            // Also own = green, Also wanted = yellow (same as the ⭐ Wanted badge colour)
+            const line = (icon, words, list, color = 'text-emerald-300/80') => list.length ? `<div class="text-[11px] ${color} leading-snug mt-1">${icon} ${words}: `
                 + list.slice(0, 4).map(label).join(', ') + (list.length > 4 ? ` (+${list.length - 4} more)` : '') + '</div>' : '';
-            return line('✓', 'Also own', own) + line('★', 'Also wanted', want);
+            return line('✓', 'Also own', own) + line('★', 'Also wanted', want, 'text-yellow-300');
         }
         const REPO_OWNER = "mirdle";
         const REPO_NAME = "mrsvlts";
