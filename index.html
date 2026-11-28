@@ -1050,7 +1050,9 @@
                 const safeNotes = escapeHTML(row.Notes);
                 // The card opens the seemightythings page when maindb has one (SMT_URL column,
                 // added 2026-10-10), otherwise the registry. Want/Notes still key on row.URL.
-                const safeHref = safeURL(row.SMT_URL || row.URL);
+                // Rows with no real link (NoLink-# placeholders) open their photo instead (2026-11-27).
+                const linkHref = safeURL(row.SMT_URL || row.URL);
+                const safeHref = linkHref !== '#' ? linkHref : safeURL(row.Image_URL);
                 const hasBoth = !!(row.SMT_URL && row.URL && row.SMT_URL !== row.URL);
                 const attrRegistry = escapeForAttr(safeURL(row.URL));
                 const safeImgSrc = row.Image_URL ? escapeHTML(row.Image_URL) : '';
